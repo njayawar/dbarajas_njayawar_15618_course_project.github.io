@@ -1,0 +1,16 @@
+# MISR from quiz3, 2012
+# 1input
+# 4 outputs
+# 4 D-type flipflops
+
+INPUT(Z)
+
+OUTPUT(Q1)
+OUTPUT(Q2)
+OUTPUT(Q3)
+OUTPUT(Q4)
+
+Q1 = DFF(D1)
+Q2 = DFF(Q1)
+Q3 = DFF(Q2)
+Q4 = DFF(D4)
