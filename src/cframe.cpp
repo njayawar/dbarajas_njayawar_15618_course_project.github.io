@@ -221,22 +221,22 @@ Circuit::Circuit(const std::string aCircuitFileString) :
 
     populate_circuit(theCircuitFile, myWireCnt);
 
-    std::cout << "\n\n----- Printing Populated Circuit -----" << std::endl;
+    // std::cout << "\n\n----- Printing Populated Circuit -----" << std::endl;
 
-    for (auto& [myWireName, myGate] : *theCircuit){
-        std::cout << "\n--- Gate: " << myWireName << " | Type: " << myGate->gateType << " ---" << std::endl;
-        std::cout << "Inputs: ";
-        for (auto& myGateInput : myGate->inputs) {
-            std::cout << myGateInput << " ";
-        }
-        std::cout << std::endl << "Outputs: ";
-        for (auto& myGateOutput : myGate->outputs) {
-            std::cout << myGateOutput + " ";
-        }
-        std::cout << std::endl;
-    }
+    // for (auto& [myWireName, myGate] : *theCircuit){
+    //     std::cout << "\n--- Gate: " << myWireName << " | Type: " << myGate->gateType << " ---" << std::endl;
+    //     std::cout << "Inputs: ";
+    //     for (auto& myGateInput : myGate->inputs) {
+    //         std::cout << myGateInput << " ";
+    //     }
+    //     std::cout << std::endl << "Outputs: ";
+    //     for (auto& myGateOutput : myGate->outputs) {
+    //         std::cout << myGateOutput + " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
 
-    printCircuitState();
+    // printCircuitState();
 
 }
 
@@ -412,7 +412,7 @@ ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
         theDFrontier->erase(aGateName);
     }
 
-    printDFrontierGates();
+    // printDFrontierGates();
 
     bool mySignalIsOutputFlag = vectorContains<std::string>((*theCircuitOutputs), aGateName);
 
