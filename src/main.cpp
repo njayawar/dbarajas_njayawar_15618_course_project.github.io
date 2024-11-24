@@ -13,6 +13,40 @@
 
 #include "cframe.h"
 
+
+std::unique_ptr<std::unordered_map<std::string, SignalType>> runPODEM(std::unique_ptr<Circuit>& aCircuit, std::pair<std::string, SignalType> anSSLFault){
+    std::unique_ptr<std::unordered_map<std::string, SignalType>> myTestVector = std::make_unique<std::unordered_map<std::string, SignalType>>();
+
+    std::cout << "Running PODEM on: " << anSSLFault.first << " | " << anSSLFault.second << std::endl;
+
+    // PODEM algorithm given SSL fault and circuit
+
+    return myTestVector;
+}
+
+
+std::unique_ptr<std::vector<std::unordered_map<std::string, SignalType>>> runATPG(std::unique_ptr<Circuit>& aCircuit){
+    std::unique_ptr<std::vector<std::unordered_map<std::string, SignalType>>> myTestVectors = std::make_unique<std::vector<std::unordered_map<std::string, SignalType>>>();
+    std::unique_ptr<std::vector<std::pair<std::string, SignalType>>> mySSLFaults = std::make_unique<std::vector<std::pair<std::string, SignalType>>>();
+
+    std::unique_ptr<std::vector<std::string>> myTest = std::make_unique<std::vector<std::string>>();
+    for (auto& mySignalPair : *(aCircuit->theCircuit)){
+        mySSLFaults->push_back(std::make_pair<std::string, SignalType>(std::string(mySignalPair.first), SignalType::ONE));
+        mySSLFaults->push_back(std::make_pair<std::string, SignalType>(std::string(mySignalPair.first), SignalType::ZERO));
+    }
+
+    while (mySSLFaults->size() > 0){
+        std::pair<std::string, SignalType> myTargetSSLFault = mySSLFaults->back();
+        myTestVectors->push_back(*runPODEM(aCircuit, myTargetSSLFault));
+        mySSLFaults->pop_back();
+    }
+
+    return myTestVectors;
+}
+
+
+
+
 int main(int argc, char** argv) {
 
     if (argc != 2) {
@@ -27,12 +61,10 @@ int main(int argc, char** argv) {
     myCircuit->setAndImplyCircuitInput("B", SignalType::ONE);
     myCircuit->setAndImplyCircuitInput("C", SignalType::ONE);
 
-    // myCircuit.setCircuitFault("66", SignalType::D);
-    // for (std::string& inputSignal : *(myCircuit.theCircuitInputs)){
-    //     myCircuit.setAndImplyCircuitInput(inputSignal, rand() % 2 ? SignalType::ONE : SignalType::ZERO);
-    // }
-
     myCircuit->printCircuitState();
+
+    std::unique_ptr<std::vector<std::unordered_map<std::string, SignalType>>> myTestVectors;
+    myTestVectors = runATPG(myCircuit);
 
     return 0;
 }
