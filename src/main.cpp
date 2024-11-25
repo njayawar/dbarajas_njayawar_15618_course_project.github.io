@@ -120,7 +120,7 @@ std::unique_ptr<std::unordered_map<std::string, SignalType>> runPODEMRecursive(s
 std::unique_ptr<std::unordered_map<std::string, SignalType>> startPODEM(std::unique_ptr<Circuit>& aCircuit, std::pair<std::string, SignalType> anSSLFault){
     std::unique_ptr<std::unordered_map<std::string, SignalType>> myTestVector = std::make_unique<std::unordered_map<std::string, SignalType>>();
 
-    std::cout << "\nInfo: Running PODEM to detect fault: " << anSSLFault.first << " | SA: " << (anSSLFault.second == SignalType::D ? '0' : '1') << std::endl;
+    std::cout << "Info: Running PODEM to detect fault: " << anSSLFault.first << " | SA: " << (anSSLFault.second == SignalType::D ? '0' : '1') << std::endl;
 
     aCircuit->setCircuitFault(anSSLFault.first, anSSLFault.second);
     aCircuit->resetCircuit();
@@ -136,10 +136,12 @@ std::unique_ptr<std::vector<std::unordered_map<std::string, SignalType>>> runATP
     for (auto& mySignalPair : *(aCircuit->theCircuit)){
         mySSLFaults->push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D));
         mySSLFaults->push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D_b));
-        // break; // Temp: only test on one fault
     }
 
-    while (mySSLFaults->size() > 0){
+    std::size_t myNumFaults = mySSLFaults->size();
+
+    while (!mySSLFaults->empty()){
+        std::cout << "\nProgress: " << (myNumFaults - mySSLFaults->size()) << " / " << myNumFaults << " faults complete" << std::endl;
         std::pair<std::string, SignalType> myTargetSSLFault = mySSLFaults->back();
         std::unique_ptr<std::unordered_map<std::string, SignalType>> myTestVector = startPODEM(aCircuit, myTargetSSLFault);
         if (myTestVector != NULL){
