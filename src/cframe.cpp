@@ -295,7 +295,7 @@ ImplyReturnType Circuit::setAndImplyCircuitInput(std::string anInput, SignalType
         return ImplyReturnType::ERROR;
     }
 
-    std::cout << "Info: Setting and implying value " << getSignalStateString(aValue) << " to signal " << anInput << std::endl;
+    // std::cout << "Info: Setting and implying value " << getSignalStateString(aValue) << " to signal " << anInput << std::endl;
 
     ImplyReturnType myReturnCode = ImplyReturnType::NORMAL;
 
@@ -325,7 +325,7 @@ ImplyReturnType Circuit::setAndImplyCircuitInput(std::string anInput, SignalType
     }
 
     for (auto& fanoutSignal : (*theCircuit)[anInput]->outputs) {
-        std::cout << "Debug: Checking gate " << fanoutSignal << " for update" << std::endl;
+        // std::cout << "Debug: Checking gate " << fanoutSignal << " for update" << std::endl;
         ImplyReturnType myNewReturnCode = evaluateGateRecursive(fanoutSignal);
 
         if (myReturnCode == ImplyReturnType::MASKED && (myNewReturnCode == ImplyReturnType::DETECTED || myNewReturnCode == ImplyReturnType::ACTIVATED)){
@@ -347,7 +347,7 @@ ImplyReturnType Circuit::setAndImplyCircuitInput(std::string anInput, SignalType
         }
     }
 
-    std::cout << "Info: Imply (" << anInput << ", " << getSignalStateString(aValue) << ") returning with code: " << getReturnCodeString(myReturnCode) << std::endl;
+    // std::cout << "Info: Imply (" << anInput << ", " << getSignalStateString(aValue) << ") returning with code: " << getReturnCodeString(myReturnCode) << std::endl;
     // printCircuitState();
 
     return myReturnCode;
@@ -371,34 +371,34 @@ ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
     } else if (aGate->gateType == "AND" || aGate->gateType == "and"){
         for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
             myNewSignalValue = opAND[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
         }
     } else if (aGate->gateType == "NAND" || aGate->gateType == "nand"){
         for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
             myNewSignalValue = opAND[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
         }
         myNewSignalValue = opNOT[myNewSignalValue];
     } else if (aGate->gateType == "OR" || aGate->gateType == "or"){
         for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
             myNewSignalValue = opOR[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
         }
     } else if (aGate->gateType == "NOR" || aGate->gateType == "nor"){
         for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
             myNewSignalValue = opOR[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
         }
         myNewSignalValue = opNOT[myNewSignalValue];
     } else if (aGate->gateType == "XOR" || aGate->gateType == "xor"){
         for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
             myNewSignalValue = opXOR[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
         }
     } else if (aGate->gateType == "XNOR" || aGate->gateType == "xnor"){
         for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
             myNewSignalValue = opXOR[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
         }
         myNewSignalValue = opNOT[myNewSignalValue];
     } else {
@@ -445,7 +445,7 @@ ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
 
     if (myNewSignalValue != myOldSignalValue){
         for (auto& fanoutSignal : aGate->outputs) {
-            std::cout << "Debug: Checking gate " << fanoutSignal << " for update" << std::endl;
+            // std::cout << "Debug: Checking gate " << fanoutSignal << " for update" << std::endl;
             ImplyReturnType myNewReturnCode = evaluateGateRecursive(fanoutSignal);
 
             if (myReturnCode == ImplyReturnType::MASKED && (myNewReturnCode == ImplyReturnType::DETECTED || myNewReturnCode == ImplyReturnType::ACTIVATED)){
@@ -480,3 +480,10 @@ void Circuit::resetCircuit(){
     }
 }
 
+std::unique_ptr<std::unordered_map<std::string, SignalType>> Circuit::getCurrCircuitInputValues(){
+    std::unique_ptr<std::unordered_map<std::string, SignalType>> myCurrCircuitInputValues = std::make_unique<std::unordered_map<std::string, SignalType>>();
+    for (auto& myInput : (*theCircuitInputs)) {
+        (*myCurrCircuitInputValues)[myInput] = (*theCircuitState)[myInput];
+    }
+    return myCurrCircuitInputValues;
+}
