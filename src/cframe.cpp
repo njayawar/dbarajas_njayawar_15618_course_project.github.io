@@ -483,7 +483,13 @@ void Circuit::resetCircuit(){
 std::unique_ptr<std::unordered_map<std::string, SignalType>> Circuit::getCurrCircuitInputValues(){
     std::unique_ptr<std::unordered_map<std::string, SignalType>> myCurrCircuitInputValues = std::make_unique<std::unordered_map<std::string, SignalType>>();
     for (auto& myInput : (*theCircuitInputs)) {
-        (*myCurrCircuitInputValues)[myInput] = (*theCircuitState)[myInput];
+        if ((*theCircuitState)[myInput] == SignalType::D){
+            (*myCurrCircuitInputValues)[myInput] = SignalType::ONE;
+        } else if ((*theCircuitState)[myInput] == SignalType::D_b){
+            (*myCurrCircuitInputValues)[myInput] = SignalType::ZERO;
+        } else {
+            (*myCurrCircuitInputValues)[myInput] = (*theCircuitState)[myInput];
+        }
     }
     return myCurrCircuitInputValues;
 }
