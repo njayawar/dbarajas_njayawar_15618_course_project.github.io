@@ -286,7 +286,7 @@ bool Circuit::setCircuitFault(std::string aFaultLocation, SignalType aFaultValue
 
 
 ImplyReturnType Circuit::setAndImplyCircuitInput(std::string anInput, SignalType aValue){
-    if (aValue != SignalType::ONE && aValue != SignalType::ZERO) {
+    if (aValue != SignalType::ONE && aValue != SignalType::ZERO && aValue != SignalType::X) {
         std::cout << "Error: setAndImply(" << anInput << ", " << getSignalStateString(aValue) << ") | Input value must of type 1 or 0" << std::endl;
         return ImplyReturnType::ERROR;
     }
@@ -301,7 +301,7 @@ ImplyReturnType Circuit::setAndImplyCircuitInput(std::string anInput, SignalType
 
     bool mySignalIsOutputFlag = vectorContains<std::string>((*theCircuitOutputs), anInput);
 
-    if (anInput == theFaultLocation){
+    if ((anInput == theFaultLocation) && (aValue != SignalType::X)){
         if (theFaultValue == SignalType::D){
             if (aValue == SignalType::ZERO){
                 (*theCircuitState)[anInput] = SignalType::ZERO;
@@ -416,7 +416,7 @@ ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
 
     bool mySignalIsOutputFlag = vectorContains<std::string>((*theCircuitOutputs), aGateName);
 
-    if (aGateName == theFaultLocation){
+    if ((aGateName == theFaultLocation) && (myNewSignalValue != SignalType::X)){
         if (theFaultValue == SignalType::D){
             if (myNewSignalValue == SignalType::ZERO){
                 (*theCircuitState)[aGateName] = myNewSignalValue;
@@ -471,5 +471,12 @@ ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
     (*theCircuit)[aGateName] = std::move(aGate);
     return myReturnCode;
 
+}
+
+
+void Circuit::resetCircuit(){
+    for(auto& aCircuitInput: *theCircuitInputs){
+        setAndImplyCircuitInput(aCircuitInput, SignalType::X);
+    }
 }
 

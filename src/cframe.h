@@ -103,6 +103,7 @@ public:
 
     bool setCircuitFault(std::string aFaultLocation, SignalType aFaultValue);
     ImplyReturnType setAndImplyCircuitInput(std::string anInput, SignalType aValue);
+    void resetCircuit();
 
     std::unique_ptr<std::unordered_map<std::string, std::unique_ptr<Gate>>> theCircuit;
     std::unique_ptr<std::unordered_map<std::string, SignalType>> theCircuitState;

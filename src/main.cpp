@@ -17,9 +17,10 @@
 std::unique_ptr<std::unordered_map<std::string, SignalType>> runPODEM(std::unique_ptr<Circuit>& aCircuit, std::pair<std::string, SignalType> anSSLFault){
     std::unique_ptr<std::unordered_map<std::string, SignalType>> myTestVector = std::make_unique<std::unordered_map<std::string, SignalType>>();
 
-    std::cout << "Running PODEM on: " << anSSLFault.first << " | " << anSSLFault.second << std::endl;
+    std::cout << "Running PODEM to detect fault: " << anSSLFault.first << " | SA: " << anSSLFault.second << std::endl;
 
     // PODEM algorithm given SSL fault and circuit
+
 
     return myTestVector;
 }
@@ -45,8 +46,6 @@ std::unique_ptr<std::vector<std::unordered_map<std::string, SignalType>>> runATP
 }
 
 
-
-
 int main(int argc, char** argv) {
 
     if (argc != 2) {
@@ -65,6 +64,9 @@ int main(int argc, char** argv) {
 
     std::unique_ptr<std::vector<std::unordered_map<std::string, SignalType>>> myTestVectors;
     myTestVectors = runATPG(myCircuit);
+
+    myCircuit->resetCircuit();
+    myCircuit->printCircuitState();
 
     return 0;
 }
