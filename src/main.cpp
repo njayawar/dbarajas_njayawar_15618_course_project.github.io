@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <unistd.h>
+#include <omp.h>
 
 #include "cframe.h"
 
@@ -100,20 +101,28 @@ std::unique_ptr<std::unordered_map<std::string, SignalType>> runPODEMRecursive(s
 
     // std:: cout << "Info: My current decision: " << myDecision.first << " | " << myDecision.second << std::endl;
 
-    aCircuit->setAndImplyCircuitInput(myDecision.first, myDecision.second);
-    std::unique_ptr<std::unordered_map<std::string, SignalType>> myPODEMResult = runPODEMRecursive(aCircuit);
-    if(myPODEMResult != NULL){
-        return myPODEMResult;
+
+    std::array<std::unique_ptr<std::unordered_map<std::string, SignalType>>, 2> myPODEMResults;
+    #pragma omp parallel num_threads(2) 
+    {
+        int thread_num = omp_get_thread_num();
+        if (thread_num == 0) {
+            myDecision.second = SignalType::ZERO;
+        } else {
+            myDecision.second = SignalType::ONE;
+        }
+        Circuit myCircuit = *aCircuit;
+        myCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
+        myPODEMResults[thread_num] = runPODEMRecursive(myCircuit);
     }
 
-    myDecision.second = (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE;
-    aCircuit->setAndImplyCircuitInput(myDecision.first, myDecision.second);
-    myPODEMResult = runPODEMRecursive(aCircuit);
-    if(myPODEMResult != NULL){
-        return myPODEMResult;
+    if (myPODEMResults[0] != NULL) {
+        return std::move(myPODEMResults[0]);
+    } else if (myPODEMResults[1] != NULL) {
+        return std::move(myPODEMResults[1]);
+    } else {
+        return NULL;
     }
-    aCircuit->setAndImplyCircuitInput(myDecision.first, SignalType::X);
-    return NULL;
 }
 
 
