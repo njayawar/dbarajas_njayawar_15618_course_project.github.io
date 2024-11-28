@@ -26,5 +26,7 @@ At the poster session we intend on having a graph displaying results on our benc
 
 The results that we presently have are the execution times of all of our benchmarks using the sequential implementation (displayed in scatter plot format below):
 
+<img width="708" alt="Screenshot 2024-11-27 at 10 02 20 PM" src="https://github.com/user-attachments/assets/484f62e8-e4c7-482b-bb0e-c63218869e66">
+
 Our largest concerns are with the ability to which we can schedule work to cores given the overhead of spawning multiple threads. At the core of our algorithm is a decision tree that we take advantage of by spawning a thread on both decisions that it can take (i.e. when it splits to both 1 and 0 branches). This will result in an unpredictably large set of threads to be spawned, depending on how many decisions are made by the algorithm on the particular circuit workload. Given that the parallel implementation is not finished yet we are not sure how many threads will be spawned for our benchmarks and if we’d have to throttle the total amount and make our final threads more coarse so that the overhead of spawning them won’t dominate the total execution time. This parameter is something that we must tune via experimentation which has yet to be done.
 
