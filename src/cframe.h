@@ -101,6 +101,7 @@ bool vectorContains(std::vector<T> aVector, T aValue){
 class Circuit {
 public:
     Circuit(const std::string aCircuitFileString);
+    Circuit(const Circuit& other);
     ~Circuit();
 
     bool setCircuitFault(std::string aFaultLocation, SignalType aFaultValue);
