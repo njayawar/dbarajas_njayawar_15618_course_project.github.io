@@ -240,6 +240,21 @@ Circuit::Circuit(const std::string aCircuitFileString) :
 
 }
 
+Circuit::Circuit(const Circuit& other) :
+    theFaultLocation(other.theFaultLocation),
+    theFaultValue(other.theFaultValue),
+    theCircuitFileString(other.theCircuitFileString) {
+    theCircuit = std::make_unique<std::unordered_map<std::string, std::unique_ptr<Gate>>>();
+    for (auto& [myGateName, myGatePtr] : *other.theCircuit) {
+        std::unique_ptr<Gate> myGate = std::make_unique<Gate>(*myGatePtr);
+        theCircuit->emplace(myGateName, std::move(myGate));
+    }
+    theCircuitState = std::make_unique<std::unordered_map<std::string, SignalType>>(*other.theCircuitState);
+    theCircuitInputs = std::make_unique<std::vector<std::string>>(*other.theCircuitInputs);
+    theCircuitOutputs = std::make_unique<std::vector<std::string>>(*other.theCircuitOutputs);
+    theCircuitSignals = std::make_unique<std::vector<std::string>>(*other.theCircuitSignals);
+    theDFrontier = std::make_unique<std::unordered_set<std::string>>(*other.theDFrontier);
+}
 
 void Circuit::printCircuitState(){
     std::cout << "\n\n----- Printing Circuit State -----" << std::endl;
