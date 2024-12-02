@@ -15,9 +15,9 @@
 #include "cframe.h"
 
 
-bool errorAtPO(std::unique_ptr<Circuit>& aCircuit){
-    for (auto& myOutput : *(aCircuit->theCircuitOutputs)) {
-        if (((*aCircuit->theCircuitState)[myOutput] == SignalType::D) || ((*aCircuit->theCircuitState)[myOutput] == SignalType::D_b)){
+bool errorAtPO(Circuit& aCircuit){
+    for (auto& myOutput : aCircuit.theCircuitOutputs) {
+        if ((aCircuit.theCircuitState[myOutput] == SignalType::D) || (aCircuit.theCircuitState[myOutput] == SignalType::D_b)){
             return true;
         }
     }
@@ -40,15 +40,15 @@ SignalType getNonControllingValue(std::string aGate){
 }
 
 
-std::pair<std::string, SignalType> getObjective(std::unique_ptr<Circuit>& aCircuit){
-    if ((*aCircuit->theCircuitState)[aCircuit->theFaultLocation] == SignalType::X){
-        SignalType mySAObjective = (aCircuit->theFaultValue == SignalType::D) ? SignalType::ONE : SignalType::ZERO;
-        return std::pair<std::string, SignalType>(aCircuit->theFaultLocation, mySAObjective);
+std::pair<std::string, SignalType> getObjective(Circuit& aCircuit){
+    if (aCircuit.theCircuitState[aCircuit.theFaultLocation] == SignalType::X){
+        SignalType mySAObjective = (aCircuit.theFaultValue == SignalType::D) ? SignalType::ONE : SignalType::ZERO;
+        return std::pair<std::string, SignalType>(aCircuit.theFaultLocation, mySAObjective);
     }
-    std::string myDFrontierGate = *(aCircuit->theDFrontier->begin());
-    for (auto& myDFrontierGateInput : (*aCircuit->theCircuit)[myDFrontierGate]->inputs){
-        if ((*aCircuit->theCircuitState)[myDFrontierGateInput] == SignalType::X){
-            return std::pair<std::string, SignalType>(myDFrontierGateInput, getNonControllingValue((*aCircuit->theCircuit)[myDFrontierGate]->gateType));
+    std::string myDFrontierGate = *(aCircuit.theDFrontier.begin());
+    for (auto& myDFrontierGateInput : aCircuit.theCircuit[myDFrontierGate].inputs) {
+        if (aCircuit.theCircuitState[myDFrontierGateInput] == SignalType::X){
+            return std::pair<std::string, SignalType>(myDFrontierGateInput, getNonControllingValue(aCircuit.theCircuit[myDFrontierGate].gateType));
         }
     }
     std::cout << "Error: Unable to create objective when it should have been possible" << std::endl;
@@ -56,17 +56,17 @@ std::pair<std::string, SignalType> getObjective(std::unique_ptr<Circuit>& aCircu
 }
 
 
-std::pair<std::string, SignalType> doBacktrace(std::unique_ptr<Circuit>& aCircuit, std::pair<std::string, SignalType> anObjective){
+std::pair<std::string, SignalType> doBacktrace(Circuit& aCircuit, std::pair<std::string, SignalType> anObjective){
     std::string myBacktraceSignal = anObjective.first;
     SignalType myBacktraceValue = anObjective.second;
 
-    while (std::ranges::find(*(aCircuit->theCircuitInputs), myBacktraceSignal) == aCircuit->theCircuitInputs->end()){
-        std::unique_ptr<Gate>& myGate = (*aCircuit->theCircuit)[myBacktraceSignal];
-        bool myGateBubble = (myGate->gateType == "NAND") || (myGate->gateType == "nand") || (myGate->gateType == "NOR") || (myGate->gateType == "nor") || (myGate->gateType == "XNOR") || (myGate->gateType == "xnor") || (myGate->gateType == "NOT") || (myGate->gateType == "not");
+    while (std::ranges::find(aCircuit.theCircuitInputs, myBacktraceSignal) == aCircuit.theCircuitInputs.end()){
+        Gate myGate = aCircuit.theCircuit[myBacktraceSignal];
+        bool myGateBubble = (myGate.gateType == "NAND") || (myGate.gateType == "nand") || (myGate.gateType == "NOR") || (myGate.gateType == "nor") || (myGate.gateType == "XNOR") || (myGate.gateType == "xnor") || (myGate.gateType == "NOT") || (myGate.gateType == "not");
 
         std::string myBacktraceSignalPrev = myBacktraceSignal; // DEBUG code
-        for (auto& myBacktraceGateInput : (*aCircuit->theCircuit)[myBacktraceSignal]->inputs){
-            if ((*aCircuit->theCircuitState)[myBacktraceGateInput] == SignalType::X){
+        for (auto& myBacktraceGateInput : aCircuit.theCircuit[myBacktraceSignal].inputs){
+            if (aCircuit.theCircuitState[myBacktraceGateInput] == SignalType::X){
                 myBacktraceSignal = myBacktraceGateInput;
                 break;
             }
@@ -85,13 +85,13 @@ std::pair<std::string, SignalType> doBacktrace(std::unique_ptr<Circuit>& aCircui
 }
 
 
-std::unique_ptr<std::unordered_map<std::string, SignalType>> runPODEMRecursive(std::unique_ptr<Circuit>& aCircuit){
+std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit){
 
     if (errorAtPO(aCircuit)){
-        return aCircuit->getCurrCircuitInputValues();
+        return aCircuit.getCurrCircuitInputValues();
     }
-    if (aCircuit->theDFrontier->empty() && !((*aCircuit->theCircuitState)[aCircuit->theFaultLocation] == SignalType::X)){
-        return NULL;
+    if (aCircuit.theDFrontier.empty() && !(aCircuit.theCircuitState[aCircuit.theFaultLocation] == SignalType::X)){
+        return std::unordered_map<std::string, SignalType>();
     }
     std::pair<std::string, SignalType> myObjective = getObjective(aCircuit);
 
@@ -101,28 +101,40 @@ std::unique_ptr<std::unordered_map<std::string, SignalType>> runPODEMRecursive(s
 
     // std:: cout << "Info: My current decision: " << myDecision.first << " | " << myDecision.second << std::endl;
 
-
     // START OMP implementation
-    std::array<std::unique_ptr<std::unordered_map<std::string, SignalType>>, 2> myPODEMResults;
-    #pragma omp parallel num_threads(2)
+    const int myNumDecisions = 2;
+    std::unordered_map<std::string, SignalType> myPODEMResults[myNumDecisions];
+    const int myNumThreads = myNumDecisions + 1;
+    Circuit myCircuits[myNumThreads];
+    #pragma omp parallel num_threads(myNumThreads)
     {
         int myThreadNum = omp_get_thread_num();
         if (myThreadNum == 0) {
             myDecision.second = SignalType::ZERO;
-        } else {
+        } else if (myThreadNum == 1) {
             myDecision.second = SignalType::ONE;
+        } else {
+            myDecision.second = SignalType::X;
         }
-        std::unique_ptr<Circuit> myCircuit = std::make_unique<Circuit>(*aCircuit);
-        myCircuit->setAndImplyCircuitInput(myDecision.first, myDecision.second);
-        myPODEMResults[myThreadNum] = runPODEMRecursive(myCircuit);
+        myCircuits[myThreadNum] = aCircuit;
+        myCircuits[myThreadNum].setAndImplyCircuitInput(myDecision.first, myDecision.second);
+        if (myThreadNum == 0 || myThreadNum == 1) {
+            myPODEMResults[myThreadNum] = runPODEMRecursive(myCircuits[myThreadNum]);
+        }
     }
 
-    if (myPODEMResults[0] != NULL) {
-        return std::move(myPODEMResults[0]);
-    } else if (myPODEMResults[1] != NULL) {
-        return std::move(myPODEMResults[1]);
+    if (!myPODEMResults[0].empty()) {
+        // std::cout << "Case 0: " << (*aCircuit == *myCircuits[0]) << std::endl;
+        aCircuit = myCircuits[0];
+        return myPODEMResults[0];
+    } else if (!myPODEMResults[1].empty()) {
+        // std::cout << "Case 1: " << (*aCircuit == *myCircuits[1]) << std::endl;
+        aCircuit = myCircuits[1];
+        return myPODEMResults[1];
     } else {
-        return NULL;
+        // std::cout << "Case 2" << std::endl;
+        aCircuit = myCircuits[2];
+        return std::unordered_map<std::string, SignalType>();
     }
     // END OMP implementation
 
@@ -143,36 +155,39 @@ std::unique_ptr<std::unordered_map<std::string, SignalType>> runPODEMRecursive(s
 }
 
 
-std::unique_ptr<std::unordered_map<std::string, SignalType>> startPODEM(std::unique_ptr<Circuit>& aCircuit, std::pair<std::string, SignalType> anSSLFault){
-    std::unique_ptr<std::unordered_map<std::string, SignalType>> myTestVector = std::make_unique<std::unordered_map<std::string, SignalType>>();
-
-    aCircuit->setCircuitFault(anSSLFault.first, anSSLFault.second);
-    aCircuit->resetCircuit();
-    return runPODEMRecursive(aCircuit);
+std::unique_ptr<std::unordered_map<std::string, SignalType>> startPODEM(Circuit& aCircuit, std::pair<std::string, SignalType> anSSLFault){
+    aCircuit.setCircuitFault(anSSLFault.first, anSSLFault.second);
+    aCircuit.resetCircuit();
+    auto myTestVector = runPODEMRecursive(aCircuit);
+    if (myTestVector.empty()) {
+        return std::make_unique<std::unordered_map<std::string, SignalType>>(myTestVector);
+    } else {
+        return NULL;
+    }
 }
 
 
-std::unique_ptr<std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>>> runATPG(std::unique_ptr<Circuit>& aCircuit){
+std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>> runATPG(Circuit& aCircuit) {
 
     double myTotalComputationTime = 0.0;
 
     // Unique_ptr to vector of results for each SSL fault ATPG
     // Each result entry consists of: | SSL fault (pair of string and SignalType) | Computation type (double) | Generated Test Vector (Unordered map of input signal names and values) - return empty map if SSL fault undetectable |
-    std::unique_ptr<std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>>> myATPGData = std::make_unique<std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>>>();
+    std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>> myATPGData = std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>>();
 
-    std::unique_ptr<std::vector<std::pair<std::string, SignalType>>> mySSLFaults = std::make_unique<std::vector<std::pair<std::string, SignalType>>>();
+    std::vector<std::pair<std::string, SignalType>> mySSLFaults = std::vector<std::pair<std::string, SignalType>>();
 
-    std::unique_ptr<std::vector<std::string>> myTest = std::make_unique<std::vector<std::string>>();
-    for (auto& mySignalPair : *(aCircuit->theCircuit)){
-        mySSLFaults->push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D));
-        mySSLFaults->push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D_b));
+    std::vector<std::string> myTest = std::vector<std::string>();
+    for (auto& mySignalPair : aCircuit.theCircuit){
+        mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D));
+        mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D_b));
     }
 
-    std::size_t myNumFaults = mySSLFaults->size();
+    std::size_t myNumFaults = mySSLFaults.size();
 
-    while (!mySSLFaults->empty()){
-        std::cout << "\nProgress: " << (myNumFaults - mySSLFaults->size()) << " / " << myNumFaults << " faults complete" << std::endl;
-        std::pair<std::string, SignalType> myTargetSSLFault = mySSLFaults->back();
+    while (!mySSLFaults.empty()){
+        std::cout << "\nProgress: " << (myNumFaults - mySSLFaults.size()) << " / " << myNumFaults << " faults complete" << std::endl;
+        std::pair<std::string, SignalType> myTargetSSLFault = mySSLFaults.back();
 
         std::cout << "Info: Running PODEM to detect fault: " << myTargetSSLFault.first << " | SA: " << (myTargetSSLFault.second == SignalType::D ? '0' : '1') << std::endl;
 
@@ -182,7 +197,7 @@ std::unique_ptr<std::vector<std::tuple<std::pair<std::string, SignalType>, doubl
         myTotalComputationTime += mySingleSSLATPGTime;
 
         if (myTestVector != NULL){
-            myATPGData->push_back(std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>(myTargetSSLFault, mySingleSSLATPGTime, *myTestVector));
+            myATPGData.push_back(std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>(myTargetSSLFault, mySingleSSLATPGTime, *myTestVector));
 
             std::cout << "\n--- Found test vector for signal " << myTargetSSLFault.first << " | SA: " << (myTargetSSLFault.second == SignalType::D ? '0' : '1') << " ---" << std::endl;
             for (auto& [myTestVectorInputSignal, myTestVectorInputValue] : *myTestVector){
@@ -190,12 +205,12 @@ std::unique_ptr<std::vector<std::tuple<std::pair<std::string, SignalType>, doubl
             }
 
         } else {
-            myATPGData->push_back(std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>(myTargetSSLFault, mySingleSSLATPGTime, std::unordered_map<std::string, SignalType>()));
+            myATPGData.push_back(std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>(myTargetSSLFault, mySingleSSLATPGTime, std::unordered_map<std::string, SignalType>()));
             std::cout << "Info: Unable to generate test vector for fault: " << myTargetSSLFault.first << " | SA: " << (myTargetSSLFault.second == SignalType::D ? '0' : '1') << std::endl;
         }
 
         std::cout << "Computation time for single SSL fault ATPG (sec): " << std::fixed << std::setprecision(10) << mySingleSSLATPGTime << '\n';
-        mySSLFaults->pop_back();
+        mySSLFaults.pop_back();
     }
 
     std::cout << "\nTotal ATPG Computation Time (sec): " << std::fixed << std::setprecision(10) << myTotalComputationTime << '\n';
@@ -213,11 +228,11 @@ int main(int argc, char** argv) {
 
     std::unique_ptr<Circuit> myCircuit = std::make_unique<Circuit>(argv[1]);
 
-    std::unique_ptr<std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>>> myATPGData;
+    std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>> myATPGData;
 
-    myATPGData = runATPG(myCircuit);
+    myATPGData = runATPG(*myCircuit);
 
-    for (auto& mySSLTestResult : *myATPGData) {
+    for (auto& mySSLTestResult : myATPGData) {
         std::cout << std::get<0>(mySSLTestResult).first << "," << (std::get<0>(mySSLTestResult).second == SignalType::D ? '0' : '1') << "," << std::get<1>(mySSLTestResult) << "," << (!std::get<2>(mySSLTestResult).empty()) << std::endl;
     }
 

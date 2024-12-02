@@ -84,9 +84,9 @@ std::unordered_map<std::string, std::vector<std::string>> Circuit::get_wire_cnt(
         // Sets value of each wire
         for (auto wire_name : wire_names) {
             if (line.starts_with("INPUT") || line.starts_with("input")) {
-                (*theCircuitInputs).push_back(wire_name);
+                theCircuitInputs.push_back(wire_name);
             } else if (line.starts_with("OUTPUT") || line.starts_with("output")) {
-                (*theCircuitOutputs).push_back(wire_name);
+                theCircuitOutputs.push_back(wire_name);
             } else {
                 if (wire_cnt.contains(wire_name)) {
                     wire_cnt[wire_name].push_back(myOutputWireName);
@@ -136,7 +136,7 @@ void Circuit::populate_circuit(std::ifstream& aCircuitFile, std::unordered_map<s
 
             // std::cout << "Processing: " << myLine << " | " << myGateOutputWire << std::endl;
 
-            std::unique_ptr<Gate> myGate = std::make_unique<Gate>(myGateType, std::vector<std::string>(), std::vector<std::string>());
+            Gate myGate = {myGateType, std::vector<std::string>(), std::vector<std::string>()};
 
             if (!myLine.starts_with("INPUT") && !myLine.starts_with("input")) {
                 for (auto& myInputWire : myInputWireNames) {
@@ -144,13 +144,13 @@ void Circuit::populate_circuit(std::ifstream& aCircuitFile, std::unordered_map<s
                         // Input is a branch
                         std::size_t myBranchIter = 0;
                         std::string myInputWireBranch = myInputWire + "_BRANCH" + std::to_string(myBranchIter) + "_" + myGateOutputWire;
-                        while (std::ranges::find(myGate->inputs, myInputWireBranch) != myGate->inputs.end()){
+                        while (std::ranges::find(myGate.inputs, myInputWireBranch) != myGate.inputs.end()){
                             myBranchIter++;
                             myInputWireBranch = myInputWire + "_BRANCH" + std::to_string(myBranchIter) + "_" + myGateOutputWire;
                         }
-                        myGate->inputs.push_back(myInputWireBranch);
+                        myGate.inputs.push_back(myInputWireBranch);
                     } else {
-                        myGate->inputs.push_back(myInputWire);
+                        myGate.inputs.push_back(myInputWire);
                     }
                 }
             }
@@ -159,43 +159,44 @@ void Circuit::populate_circuit(std::ifstream& aCircuitFile, std::unordered_map<s
                 for (auto& myOutputBranch : aWireCnt[myGateOutputWire]) {
                     std::size_t myBranchIter = 0;
                     std::string myOutputBranchName = myGateOutputWire + "_BRANCH" + std::to_string(myBranchIter) + "_" + myOutputBranch;
-                    while (std::ranges::find(myGate->outputs, myOutputBranchName) != myGate->outputs.end()){
+                    while (std::ranges::find(myGate.outputs, myOutputBranchName) != myGate.outputs.end()){
                         myBranchIter++;
                         myOutputBranchName = myGateOutputWire + "_BRANCH" + std::to_string(myBranchIter) + "_" + myOutputBranch;
                     }
-                    myGate->outputs.push_back(myOutputBranchName);
-                    std::unique_ptr<Gate> myBranchGate = std::make_unique<Gate>("BUFF", std::vector<std::string>({myGateOutputWire}), std::vector<std::string>({myOutputBranch}));
-                    (*theCircuit)[myOutputBranchName] = std::move(myBranchGate);
-                    (*theCircuitState)[myOutputBranchName] = SignalType::X;
-                    (*theCircuitSignals).push_back(myOutputBranchName);
+                    myGate.outputs.push_back(myOutputBranchName);
+                    Gate myBranchGate = {"BUFF", std::vector<std::string>({myGateOutputWire}), std::vector<std::string>({myOutputBranch})};
+                    theCircuit[myOutputBranchName] = myBranchGate;
+                    theCircuitState[myOutputBranchName] = SignalType::X;
+                    theCircuitSignals.push_back(myOutputBranchName);
                 }
             } else {
                 for (auto& myOutputBranch : aWireCnt[myGateOutputWire]) {
-                    myGate->outputs.push_back(myOutputBranch);
+                    myGate.outputs.push_back(myOutputBranch);
                 }
             }
 
-            (*theCircuit)[myGateOutputWire] = std::move(myGate);
-            (*theCircuitState)[myGateOutputWire] = SignalType::X;
-            (*theCircuitSignals).push_back(myGateOutputWire);
+            theCircuit[myGateOutputWire] = myGate;
+            theCircuitState[myGateOutputWire] = SignalType::X;
+            theCircuitSignals.push_back(myGateOutputWire);
         }
     }
 }
 
+Circuit::Circuit() {};
 
 Circuit::Circuit(const std::string aCircuitFileString) :
         theFaultLocation(""),
         theFaultValue(SignalType::X),
         theCircuitFileString(aCircuitFileString) {
 
-    theCircuit = std::make_unique<std::unordered_map<std::string, std::unique_ptr<Gate>>>();
-    theCircuitState = std::make_unique<std::unordered_map<std::string, SignalType>>();
+    theCircuit = std::unordered_map<std::string, Gate>();
+    theCircuitState = std::unordered_map<std::string, SignalType>();
 
-    theCircuitInputs = std::make_unique<std::vector<std::string>>();
-    theCircuitOutputs = std::make_unique<std::vector<std::string>>();
-    theCircuitSignals = std::make_unique<std::vector<std::string>>();
+    theCircuitInputs = std::vector<std::string>();
+    theCircuitOutputs = std::vector<std::string>();
+    theCircuitSignals = std::vector<std::string>();
 
-    theDFrontier = std::make_unique<std::unordered_set<std::string>>();
+    theDFrontier = std::unordered_set<std::string>();
 
     theCircuitFile.open(theCircuitFileString);
 
@@ -240,25 +241,34 @@ Circuit::Circuit(const std::string aCircuitFileString) :
 
 }
 
+Circuit& Circuit::operator=(const Circuit& other) {
+    theFaultLocation = other.theFaultLocation;
+    theFaultValue = other.theFaultValue;
+    theCircuitFileString = other.theCircuitFileString;
+    theCircuit = other.theCircuit;
+    theCircuitState = other.theCircuitState;
+    theCircuitInputs = other.theCircuitInputs;
+    theCircuitOutputs = other.theCircuitOutputs;
+    theCircuitSignals = other.theCircuitSignals;
+    theDFrontier = other.theDFrontier;
+    return *this;
+}
+
 Circuit::Circuit(const Circuit& other) :
+    theCircuit(other.theCircuit),
+    theCircuitState(other.theCircuitState),
+    theCircuitInputs(other.theCircuitInputs),
+    theCircuitOutputs(other.theCircuitOutputs),
+    theCircuitSignals(other.theCircuitSignals),
     theFaultLocation(other.theFaultLocation),
     theFaultValue(other.theFaultValue),
-    theCircuitFileString(other.theCircuitFileString) {
-    theCircuit = std::make_unique<std::unordered_map<std::string, std::unique_ptr<Gate>>>();
-    for (auto& [myGateName, myGatePtr] : *other.theCircuit) {
-        std::unique_ptr<Gate> myGate = std::make_unique<Gate>(*myGatePtr);
-        theCircuit->emplace(myGateName, std::move(myGate));
-    }
-    theCircuitState = std::make_unique<std::unordered_map<std::string, SignalType>>(*other.theCircuitState);
-    theCircuitInputs = std::make_unique<std::vector<std::string>>(*other.theCircuitInputs);
-    theCircuitOutputs = std::make_unique<std::vector<std::string>>(*other.theCircuitOutputs);
-    theCircuitSignals = std::make_unique<std::vector<std::string>>(*other.theCircuitSignals);
-    theDFrontier = std::make_unique<std::unordered_set<std::string>>(*other.theDFrontier);
-}
+    theDFrontier(other.theDFrontier),
+    theCircuitFileString(other.theCircuitFileString)
+{}
 
 void Circuit::printCircuitState(){
     std::cout << "\n\n----- Printing Circuit State -----" << std::endl;
-    for (auto& [myWireName, myWireState] : *theCircuitState){
+    for (auto& [myWireName, myWireState] : theCircuitState){
         std::cout << std::setw(30) << myWireName << ": " << getSignalStateString(myWireState) << std::endl;
     }
     std::cout << std::endl;
@@ -267,7 +277,7 @@ void Circuit::printCircuitState(){
 
 void Circuit::printDFrontierGates(){
     std::cout << "\n\n----- Printing DFrontier Gates -----" << std::endl;
-    for (auto& dFrontierGate : *theDFrontier){
+    for (auto& dFrontierGate : theDFrontier){
         std::cout << dFrontierGate << std::endl;
     }
     std::cout << std::endl;
@@ -280,7 +290,6 @@ Circuit::~Circuit() {
     }
 }
 
-
 bool Circuit::setCircuitFault(std::string aFaultLocation, SignalType aFaultValue){
 
     if (aFaultValue != SignalType::D && aFaultValue != SignalType::D_b) {
@@ -288,7 +297,7 @@ bool Circuit::setCircuitFault(std::string aFaultLocation, SignalType aFaultValue
         return false;
     }
 
-    if (vectorContains<std::string>((*theCircuitSignals), aFaultLocation)){
+    if (vectorContains<std::string>(theCircuitSignals, aFaultLocation)){
         theFaultLocation = aFaultLocation;
         theFaultValue = aFaultValue;
         std::cout << "Info: Set fault value " << getSignalStateString(aFaultValue) << " to signal " << aFaultLocation<< std::endl;
@@ -305,7 +314,7 @@ ImplyReturnType Circuit::setAndImplyCircuitInput(std::string anInput, SignalType
         std::cout << "Error: setAndImply(" << anInput << ", " << getSignalStateString(aValue) << ") | Input value must of type 1 or 0" << std::endl;
         return ImplyReturnType::ERROR;
     }
-    if (!vectorContains<std::string>((*theCircuitInputs), anInput)){
+    if (!vectorContains<std::string>(theCircuitInputs, anInput)){
         std::cout << "Error: setAndImply(" << anInput << ", " << getSignalStateString(aValue) << ") | Signal " << anInput << " is not a valid circuit input" << std::endl;
         return ImplyReturnType::ERROR;
     }
@@ -314,32 +323,32 @@ ImplyReturnType Circuit::setAndImplyCircuitInput(std::string anInput, SignalType
 
     ImplyReturnType myReturnCode = ImplyReturnType::NORMAL;
 
-    bool mySignalIsOutputFlag = vectorContains<std::string>((*theCircuitOutputs), anInput);
+    bool mySignalIsOutputFlag = vectorContains<std::string>(theCircuitOutputs, anInput);
 
     if ((anInput == theFaultLocation) && (aValue != SignalType::X)){
         if (theFaultValue == SignalType::D){
             if (aValue == SignalType::ZERO){
-                (*theCircuitState)[anInput] = SignalType::ZERO;
+                theCircuitState[anInput] = SignalType::ZERO;
                 myReturnCode = ImplyReturnType::MASKED;
             } else {
-                (*theCircuitState)[anInput] = SignalType::D;
+                theCircuitState[anInput] = SignalType::D;
                 myReturnCode = (mySignalIsOutputFlag) ? ImplyReturnType::DETECTED : ImplyReturnType::ACTIVATED;
             }
         }
         if (theFaultValue == SignalType::D_b){
             if (aValue == SignalType::ONE){
-                (*theCircuitState)[anInput] = SignalType::ONE;
+                theCircuitState[anInput] = SignalType::ONE;
                 myReturnCode = ImplyReturnType::MASKED;
             } else {
-                (*theCircuitState)[anInput] = SignalType::D_b;
+                theCircuitState[anInput] = SignalType::D_b;
                 myReturnCode = (mySignalIsOutputFlag) ? ImplyReturnType::DETECTED : ImplyReturnType::ACTIVATED;
             }
         }
     } else {
-        (*theCircuitState)[anInput] = aValue;
+        theCircuitState[anInput] = aValue;
     }
 
-    for (auto& fanoutSignal : (*theCircuit)[anInput]->outputs) {
+    for (auto& fanoutSignal : theCircuit[anInput].outputs) {
         // std::cout << "Debug: Checking gate " << fanoutSignal << " for update" << std::endl;
         ImplyReturnType myNewReturnCode = evaluateGateRecursive(fanoutSignal);
 
@@ -373,85 +382,85 @@ ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
 
     ImplyReturnType myReturnCode = ImplyReturnType::NORMAL;
 
-    std::unique_ptr<Gate> aGate = std::move((*theCircuit)[aGateName]);
-    SignalType myNewSignalValue = (*theCircuitState)[aGate->inputs[0]];
-    SignalType myOldSignalValue = (*theCircuitState)[aGateName];
+    Gate aGate = theCircuit[aGateName];
+    SignalType myNewSignalValue = theCircuitState[aGate.inputs[0]];
+    SignalType myOldSignalValue = theCircuitState[aGateName];
 
-    bool myDInputFlag = (*theCircuitState)[aGate->inputs[0]] == SignalType::D || (*theCircuitState)[aGate->inputs[0]] == SignalType::D_b;
+    bool myDInputFlag = theCircuitState[aGate.inputs[0]] == SignalType::D || theCircuitState[aGate.inputs[0]] == SignalType::D_b;
 
-    if (aGate->gateType == "BUFF" || aGate->gateType == "buff"){
-        myNewSignalValue = (*theCircuitState)[aGate->inputs[0]];
-    } else if (aGate->gateType == "NOT" || aGate->gateType == "not"){
-        myNewSignalValue = opNOT[(*theCircuitState)[aGate->inputs[0]]];
-    } else if (aGate->gateType == "AND" || aGate->gateType == "and"){
-        for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
-            myNewSignalValue = opAND[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+    if (aGate.gateType == "BUFF" || aGate.gateType == "buff"){
+        myNewSignalValue = theCircuitState[aGate.inputs[0]];
+    } else if (aGate.gateType == "NOT" || aGate.gateType == "not"){
+        myNewSignalValue = opNOT[theCircuitState[aGate.inputs[0]]];
+    } else if (aGate.gateType == "AND" || aGate.gateType == "and"){
+        for (std::size_t myFaninIter = 1; myFaninIter < aGate.inputs.size(); myFaninIter++){
+            myNewSignalValue = opAND[myNewSignalValue][theCircuitState[aGate.inputs[myFaninIter]]];
+            myDInputFlag = myDInputFlag || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D_b;
         }
-    } else if (aGate->gateType == "NAND" || aGate->gateType == "nand"){
-        for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
-            myNewSignalValue = opAND[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+    } else if (aGate.gateType == "NAND" || aGate.gateType == "nand"){
+        for (std::size_t myFaninIter = 1; myFaninIter < aGate.inputs.size(); myFaninIter++){
+            myNewSignalValue = opAND[myNewSignalValue][theCircuitState[aGate.inputs[myFaninIter]]];
+            myDInputFlag = myDInputFlag || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D_b;
         }
         myNewSignalValue = opNOT[myNewSignalValue];
-    } else if (aGate->gateType == "OR" || aGate->gateType == "or"){
-        for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
-            myNewSignalValue = opOR[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+    } else if (aGate.gateType == "OR" || aGate.gateType == "or"){
+        for (std::size_t myFaninIter = 1; myFaninIter < aGate.inputs.size(); myFaninIter++){
+            myNewSignalValue = opOR[myNewSignalValue][theCircuitState[aGate.inputs[myFaninIter]]];
+            myDInputFlag = myDInputFlag || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D_b;
         }
-    } else if (aGate->gateType == "NOR" || aGate->gateType == "nor"){
-        for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
-            myNewSignalValue = opOR[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+    } else if (aGate.gateType == "NOR" || aGate.gateType == "nor"){
+        for (std::size_t myFaninIter = 1; myFaninIter < aGate.inputs.size(); myFaninIter++){
+            myNewSignalValue = opOR[myNewSignalValue][theCircuitState[aGate.inputs[myFaninIter]]];
+            myDInputFlag = myDInputFlag || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D_b;
         }
         myNewSignalValue = opNOT[myNewSignalValue];
-    } else if (aGate->gateType == "XOR" || aGate->gateType == "xor"){
-        for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
-            myNewSignalValue = opXOR[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+    } else if (aGate.gateType == "XOR" || aGate.gateType == "xor"){
+        for (std::size_t myFaninIter = 1; myFaninIter < aGate.inputs.size(); myFaninIter++){
+            myNewSignalValue = opXOR[myNewSignalValue][theCircuitState[aGate.inputs[myFaninIter]]];
+            myDInputFlag = myDInputFlag || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D_b;
         }
-    } else if (aGate->gateType == "XNOR" || aGate->gateType == "xnor"){
-        for (std::size_t myFaninIter = 1; myFaninIter < aGate->inputs.size(); myFaninIter++){
-            myNewSignalValue = opXOR[myNewSignalValue][(*theCircuitState)[aGate->inputs[myFaninIter]]];
-            myDInputFlag = myDInputFlag || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D || (*theCircuitState)[aGate->inputs[myFaninIter]] == SignalType::D_b;
+    } else if (aGate.gateType == "XNOR" || aGate.gateType == "xnor"){
+        for (std::size_t myFaninIter = 1; myFaninIter < aGate.inputs.size(); myFaninIter++){
+            myNewSignalValue = opXOR[myNewSignalValue][theCircuitState[aGate.inputs[myFaninIter]]];
+            myDInputFlag = myDInputFlag || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D || theCircuitState[aGate.inputs[myFaninIter]] == SignalType::D_b;
         }
         myNewSignalValue = opNOT[myNewSignalValue];
     } else {
-        std::cout << "Error: Unable to match gate " << aGate->gateType << std::endl;
+        std::cout << "Error: Unable to match gate " << aGate.gateType << std::endl;
         myReturnCode = ImplyReturnType::ERROR;
     }
 
     if (myNewSignalValue == SignalType::X && myDInputFlag) {
-        theDFrontier->insert(aGateName);
+        theDFrontier.insert(aGateName);
     } else {
-        theDFrontier->erase(aGateName);
+        theDFrontier.erase(aGateName);
     }
 
     // printDFrontierGates();
 
-    bool mySignalIsOutputFlag = vectorContains<std::string>((*theCircuitOutputs), aGateName);
+    bool mySignalIsOutputFlag = vectorContains<std::string>(theCircuitOutputs, aGateName);
 
     if ((aGateName == theFaultLocation) && (myNewSignalValue != SignalType::X)){
         if (theFaultValue == SignalType::D){
             if (myNewSignalValue == SignalType::ZERO){
-                (*theCircuitState)[aGateName] = myNewSignalValue;
+                theCircuitState[aGateName] = myNewSignalValue;
                 myReturnCode = ImplyReturnType::MASKED;
             } else {
-                (*theCircuitState)[aGateName] = SignalType::D;
+                theCircuitState[aGateName] = SignalType::D;
                 myReturnCode = ImplyReturnType::ACTIVATED;
             }
         }
         if (theFaultValue == SignalType::D_b){
             if (myNewSignalValue == SignalType::ONE){
-                (*theCircuitState)[aGateName] = myNewSignalValue;
+                theCircuitState[aGateName] = myNewSignalValue;
                 myReturnCode = ImplyReturnType::MASKED;
             } else {
-                (*theCircuitState)[aGateName] = SignalType::D_b;
+                theCircuitState[aGateName] = SignalType::D_b;
                 myReturnCode = ImplyReturnType::ACTIVATED;
             }
         }
     } else {
-        (*theCircuitState)[aGateName] = myNewSignalValue;
+        theCircuitState[aGateName] = myNewSignalValue;
     }
 
     if (mySignalIsOutputFlag && (myNewSignalValue == SignalType::D || myNewSignalValue == SignalType::D_b)) {
@@ -459,7 +468,7 @@ ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
     }
 
     if (myNewSignalValue != myOldSignalValue){
-        for (auto& fanoutSignal : aGate->outputs) {
+        for (auto& fanoutSignal : aGate.outputs) {
             // std::cout << "Debug: Checking gate " << fanoutSignal << " for update" << std::endl;
             ImplyReturnType myNewReturnCode = evaluateGateRecursive(fanoutSignal);
 
@@ -483,27 +492,27 @@ ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
         }
     }
 
-    (*theCircuit)[aGateName] = std::move(aGate);
+    theCircuit[aGateName] = aGate;
     return myReturnCode;
 
 }
 
 
 void Circuit::resetCircuit(){
-    for(auto& aCircuitInput: *theCircuitInputs){
+    for(auto& aCircuitInput: theCircuitInputs){
         setAndImplyCircuitInput(aCircuitInput, SignalType::X);
     }
 }
 
-std::unique_ptr<std::unordered_map<std::string, SignalType>> Circuit::getCurrCircuitInputValues(){
-    std::unique_ptr<std::unordered_map<std::string, SignalType>> myCurrCircuitInputValues = std::make_unique<std::unordered_map<std::string, SignalType>>();
-    for (auto& myInput : (*theCircuitInputs)) {
-        if ((*theCircuitState)[myInput] == SignalType::D){
-            (*myCurrCircuitInputValues)[myInput] = SignalType::ONE;
-        } else if ((*theCircuitState)[myInput] == SignalType::D_b){
-            (*myCurrCircuitInputValues)[myInput] = SignalType::ZERO;
+std::unordered_map<std::string, SignalType> Circuit::getCurrCircuitInputValues(){
+    std::unordered_map<std::string, SignalType> myCurrCircuitInputValues = std::unordered_map<std::string, SignalType>();
+    for (auto& myInput : theCircuitInputs) {
+        if (theCircuitState[myInput] == SignalType::D){
+            myCurrCircuitInputValues[myInput] = SignalType::ONE;
+        } else if (theCircuitState[myInput] == SignalType::D_b){
+            myCurrCircuitInputValues[myInput] = SignalType::ZERO;
         } else {
-            (*myCurrCircuitInputValues)[myInput] = (*theCircuitState)[myInput];
+            myCurrCircuitInputValues[myInput] = theCircuitState[myInput];
         }
     }
     return myCurrCircuitInputValues;
