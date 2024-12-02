@@ -1,4 +1,5 @@
-TEST=../resource/benchmarks/ISCAS85/c432.bench
+TEST=../resource/benchmarks/ISCAS85/c25.bench
+clear
 make clean
 if [[ $(uname) == 'Darwin' ]]; then
     make mac
