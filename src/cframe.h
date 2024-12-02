@@ -65,6 +65,7 @@ struct Gate {
     std::vector<std::string> outputs;
 
     Gate(std::string gateType, std::vector<std::string> inputs, std::vector<std::string> outputs) : gateType(gateType), inputs(inputs), outputs(outputs) {}
+    Gate() : gateType(""), inputs(), outputs() {}
 };
 
 const SignalType opAND [5][5] = {
@@ -100,26 +101,28 @@ bool vectorContains(std::vector<T> aVector, T aValue){
 
 class Circuit {
 public:
+    Circuit();
     Circuit(const std::string aCircuitFileString);
     Circuit(const Circuit& other);
+    Circuit& operator=(const Circuit& other);
     ~Circuit();
 
     bool setCircuitFault(std::string aFaultLocation, SignalType aFaultValue);
     ImplyReturnType setAndImplyCircuitInput(std::string anInput, SignalType aValue);
     void resetCircuit();
-    std::unique_ptr<std::unordered_map<std::string, SignalType>> getCurrCircuitInputValues();
+    std::unordered_map<std::string, SignalType> getCurrCircuitInputValues();
 
-    std::unique_ptr<std::unordered_map<std::string, std::unique_ptr<Gate>>> theCircuit;
-    std::unique_ptr<std::unordered_map<std::string, SignalType>> theCircuitState;
+    std::unordered_map<std::string, Gate> theCircuit;
+    std::unordered_map<std::string, SignalType> theCircuitState;
 
-    std::unique_ptr<std::vector<std::string>> theCircuitInputs;
-    std::unique_ptr<std::vector<std::string>> theCircuitOutputs;
-    std::unique_ptr<std::vector<std::string>> theCircuitSignals;
+    std::vector<std::string> theCircuitInputs;
+    std::vector<std::string> theCircuitOutputs;
+    std::vector<std::string> theCircuitSignals;
 
     std::string theFaultLocation;
     SignalType theFaultValue;
 
-    std::unique_ptr<std::unordered_set<std::string>> theDFrontier;
+    std::unordered_set<std::string> theDFrontier;
 
     void printCircuitState();
     void printDFrontierGates();
