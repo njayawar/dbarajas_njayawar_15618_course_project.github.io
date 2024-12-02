@@ -68,6 +68,8 @@ struct Gate {
     Gate() : gateType(""), inputs(), outputs() {}
 };
 
+void printGate(Gate aGate);
+
 const SignalType opAND [5][5] = {
     {SignalType::ZERO, SignalType::ZERO, SignalType::ZERO, SignalType::ZERO, SignalType::ZERO},
     {SignalType::ZERO, SignalType::ONE,  SignalType::D,    SignalType::D_b,  SignalType::X},
@@ -126,6 +128,7 @@ public:
 
     void printCircuitState();
     void printDFrontierGates();
+    void printCircuit();
 
 private:
     std::string theCircuitFileString;

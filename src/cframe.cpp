@@ -242,15 +242,15 @@ Circuit::Circuit(const std::string aCircuitFileString) :
 }
 
 Circuit& Circuit::operator=(const Circuit& other) {
-    theFaultLocation = other.theFaultLocation;
-    theFaultValue = other.theFaultValue;
-    theCircuitFileString = other.theCircuitFileString;
     theCircuit = other.theCircuit;
     theCircuitState = other.theCircuitState;
     theCircuitInputs = other.theCircuitInputs;
     theCircuitOutputs = other.theCircuitOutputs;
     theCircuitSignals = other.theCircuitSignals;
+    theFaultLocation = other.theFaultLocation;
+    theFaultValue = other.theFaultValue;
     theDFrontier = other.theDFrontier;
+    theCircuitFileString = other.theCircuitFileString;
     return *this;
 }
 
@@ -265,6 +265,30 @@ Circuit::Circuit(const Circuit& other) :
     theDFrontier(other.theDFrontier),
     theCircuitFileString(other.theCircuitFileString)
 {}
+
+void printGate(Gate aGate) {
+    std::cout << aGate.gateType << std::endl;
+    for (auto& anInput : aGate.inputs) {
+        std::cout << anInput << ' ';
+    }
+    std::cout << std::endl;
+    for (auto& anOutput : aGate.outputs) {
+        std::cout << anOutput << ' ';
+    }
+    std::cout << std::endl;
+}
+
+void Circuit::printCircuit() {}
+// void Circuit::printCircuit(){
+//     for (auto& [aGateName, aGate] : theCircuit) {
+//         std::cout << aGateName << std::endl;
+//         printGate(aGate);
+//     }
+//     printCircuitState();
+//     for (auto& anInput : theCircuitInputs) {
+//         std::cout << anInput << std::endl;
+//     }
+// }
 
 void Circuit::printCircuitState(){
     std::cout << "\n\n----- Printing Circuit State -----" << std::endl;
