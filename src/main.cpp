@@ -17,8 +17,8 @@
 // Global counter of total threads running
 #define MAX_PARALLEL_THREADS 8
 int myThreadCnt = 1;
+bool mySolutionFound = false;
 omp_lock_t myThreadCntLock;
-
 
 bool errorAtPO(Circuit& aCircuit){
     for (auto& myOutput : aCircuit.theCircuitOutputs) {
@@ -93,12 +93,17 @@ std::pair<std::string, SignalType> doBacktrace(Circuit& aCircuit, std::pair<std:
 std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit){
 
     // aCircuit.printCircuitState();
+    if (mySolutionFound) {
+        return std::unordered_map<std::string, SignalType>();
+    }
 
     if (errorAtPO(aCircuit)){
+        mySolutionFound = true;
         return aCircuit.getCurrCircuitInputValues();
     }
     if (aCircuit.theDFrontier.empty() && !(aCircuit.theCircuitState[aCircuit.theFaultLocation] == SignalType::X)){
         omp_set_lock(&myThreadCntLock);
+        std::cout << "Critial Section: Decrementing lock" << std::endl;
         myThreadCnt--;
         omp_unset_lock(&myThreadCntLock);
         return std::unordered_map<std::string, SignalType>();
@@ -112,9 +117,10 @@ std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit)
     // std:: cout << "Info: My current decision: " << myDecision.first << " | " << myDecision.second << std::endl;
 
     // START OMP implementation
-    if (myThreadCnt <= MAX_PARALLEL_THREADS){
+    if (myThreadCnt < MAX_PARALLEL_THREADS){
 
         omp_set_lock(&myThreadCntLock);
+        std::cout << "Critial Section: Incrementing lock" << std::endl;
         myThreadCnt++;
         omp_unset_lock(&myThreadCntLock);
 
@@ -123,11 +129,9 @@ std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit)
         std::vector<Circuit> myCircuits = std::vector<Circuit>(myNumThreads);
         #pragma omp parallel for schedule(dynamic) firstprivate(myDecision)
         for (int i = 0; i < myNumThreads; i++) {
-            if (i == 0) {
-                myDecision.second = SignalType::ZERO;
-            } else if (i == 1) {
-                myDecision.second = SignalType::ONE;
-            } else {
+            if (i == 1) {
+                myDecision.second = (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE;
+            } else if (i != 0) {
                 std::cout << "Error: Invalid iteration num" << std::endl;
             }
             myCircuits[i] = aCircuit;
@@ -148,6 +152,7 @@ std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit)
             return std::unordered_map<std::string, SignalType>();
         }
     } else {
+        std::cout << "Reached max limit: " << myThreadCnt << std::endl;
         aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
         std::unordered_map<std::string, SignalType> myPODEMResult = runPODEMRecursive(aCircuit);
         if(!myPODEMResult.empty()){
@@ -188,6 +193,8 @@ std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit)
 std::unique_ptr<std::unordered_map<std::string, SignalType>> startPODEM(Circuit& aCircuit, std::pair<std::string, SignalType> anSSLFault){
     aCircuit.setCircuitFault(anSSLFault.first, anSSLFault.second);
     aCircuit.resetCircuit();
+    mySolutionFound = false;
+    myThreadCnt = 1;
     auto myTestVector = runPODEMRecursive(aCircuit);
     if (!myTestVector.empty()) {
         return std::make_unique<std::unordered_map<std::string, SignalType>>(myTestVector);
