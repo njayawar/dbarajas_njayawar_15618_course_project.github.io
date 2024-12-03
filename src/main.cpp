@@ -17,7 +17,11 @@
 
 // Global counter of total threads running
 #define MAX_THREADS 8
+#define MAX_ACTIVE_TASKS 20
+
 bool mySolutionFound = false;
+int myTaskCnt = 0;
+int myMaxTaskCnt = 0;
 
 bool errorAtPO(Circuit& aCircuit){
     for (auto& myOutput : aCircuit.theCircuitOutputs) {
@@ -171,39 +175,87 @@ std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit)
     // #pragma omp parallel
     // #pragma omp single
     // {
-    #pragma taskgroup
-    {
-        #pragma omp task shared(myCircuits) shared(myPODEMResults)
+
+    // std::cout << "Number of active tasks: " << myTaskCnt << std::endl;
+
+    if (myTaskCnt < MAX_ACTIVE_TASKS){
+
+        #pragma omp critical
         {
-            // std::cout << "Executing task 0 in thread " << omp_get_thread_num() << " at nested level " << omp_get_level() << std::endl;
-            myCircuits[0] = aCircuit;
-            myCircuits[0].setAndImplyCircuitInput(myDecision.first, myDecision.second);
-            myPODEMResults[0] = runPODEMRecursive(myCircuits[0]);
+            myTaskCnt += 2;
+            if (myTaskCnt > myMaxTaskCnt) {
+                myMaxTaskCnt = myTaskCnt;
+            }
         }
 
-        #pragma omp task shared(myCircuits) shared(myPODEMResults)
+        #pragma taskgroup
         {
-            // std::cout << "Executing task 1 in thread " << omp_get_thread_num() << " at nested level " << omp_get_level() << std::endl;
-            myCircuits[1] = aCircuit;
-            myCircuits[1].setAndImplyCircuitInput(myDecision.first, (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE);
-            myPODEMResults[1] = runPODEMRecursive(myCircuits[1]);
-        }
-        #pragma omp taskwait
-    }
-    // }
+            // std::cout << "Spawning tasks from thread " << omp_get_thread_num() << std::endl;
+            #pragma omp task untied shared(myCircuits) shared(myPODEMResults)
+            {
+                // std::cout << "Executing task 0 in thread " << omp_get_thread_num() << " at nested level " << omp_get_level() << std::endl;
+                myCircuits[0] = aCircuit;
+                myCircuits[0].setAndImplyCircuitInput(myDecision.first, myDecision.second);
+                myPODEMResults[0] = runPODEMRecursive(myCircuits[0]);
+                // finishedTasks0 = true;
+                #pragma omp critical
+                {
+                    myTaskCnt--;
+                }
+            }
 
-    if (!myPODEMResults[0].empty()) {
-        aCircuit = myCircuits[0];
-        return myPODEMResults[0];
-    } else if (!myPODEMResults[1].empty()) {
-        aCircuit = myCircuits[1];
-        return myPODEMResults[1];
-    } else {
-        aCircuit.setAndImplyCircuitInput(myDecision.first, SignalType::X);
-        return std::unordered_map<std::string, SignalType>();
-    }
+            #pragma omp task untied shared(myCircuits) shared(myPODEMResults)
+            {
+                // std::cout << "Executing task 1 in thread " << omp_get_thread_num() << " at nested level " << omp_get_level() << std::endl;
+                myCircuits[1] = aCircuit;
+                myCircuits[1].setAndImplyCircuitInput(myDecision.first, (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE);
+                myPODEMResults[1] = runPODEMRecursive(myCircuits[1]);
+                // finishedTasks1 = true;
+                #pragma omp critical
+                {
+                    myTaskCnt--;
+                }
+            }
+            // std::cout << "Thread waiting at taskwait " << omp_get_thread_num() << std::endl;
+            #pragma omp taskwait
+        }
+        // }
+        // std::cout << "Thread proceeding after taskwait " << omp_get_thread_num() << std::endl;
+
+        // while (!finishedTasks0 || !finishedTasks1) {
+        //     #pragma omp taskyield
+        // }
+
+        if (!myPODEMResults[0].empty()) {
+            aCircuit = myCircuits[0];
+            return myPODEMResults[0];
+        } else if (!myPODEMResults[1].empty()) {
+            aCircuit = myCircuits[1];
+            return myPODEMResults[1];
+        } else {
+            aCircuit.setAndImplyCircuitInput(myDecision.first, SignalType::X);
+            return std::unordered_map<std::string, SignalType>();
+        }
 
     // END OMP implementation
+    } else {
+
+        aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
+        std::unordered_map<std::string, SignalType> myPODEMResult = runPODEMRecursive(aCircuit);
+        if(!myPODEMResult.empty()){
+            return myPODEMResult;
+        }
+
+        myDecision.second = (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE;
+        aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
+        myPODEMResult = runPODEMRecursive(aCircuit);
+        if(!myPODEMResult.empty()){
+            return myPODEMResult;
+        }
+        aCircuit.setAndImplyCircuitInput(myDecision.first, SignalType::X);
+        return std::unordered_map<std::string, SignalType>();
+
+    }
 
     // START serial implementation
     // aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
@@ -233,6 +285,7 @@ std::unique_ptr<std::unordered_map<std::string, SignalType>> startPODEM(Circuit&
     #pragma omp parallel
     #pragma omp single
     {
+        // std::cout << "Coordinator Thread " << omp_get_thread_num() << std::endl;
         myTestVector = runPODEMRecursive(aCircuit);
     }
 
@@ -259,7 +312,7 @@ std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordere
         mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D));
         mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D_b));
     }
-    // mySSLFaults.push_back(std::pair<std::string, SignalType>("22", SignalType::D));
+    // mySSLFaults.push_back(std::pair<std::string, SignalType>("213_BRANCH0_259", SignalType::D));
 
     std::size_t myNumFaults = mySSLFaults.size();
 
@@ -315,6 +368,8 @@ int main(int argc, char** argv) {
     for (auto& mySSLTestResult : myATPGData) {
         std::cout << std::get<0>(mySSLTestResult).first << "," << (std::get<0>(mySSLTestResult).second == SignalType::D ? '0' : '1') << "," << std::get<1>(mySSLTestResult) << "," << (!std::get<2>(mySSLTestResult).empty()) << std::endl;
     }
+
+    std::cout << "Max live tasks " << myMaxTaskCnt << std::endl;
 
     return 0;
 }
