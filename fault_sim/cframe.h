@@ -72,6 +72,8 @@ struct Gate {
 };
 
 void printGate(Gate aGate);
+bool string_is_whitespace(std::string& s);
+std::vector<std::string> tokenize_line(std::string s);
 
 const SignalType opAND [5][5] = {
     {SignalType::ZERO, SignalType::ZERO, SignalType::ZERO, SignalType::ZERO, SignalType::ZERO},
