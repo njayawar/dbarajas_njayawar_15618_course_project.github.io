@@ -1,7 +1,10 @@
 #include <iostream>
 
 #include "cframe.h"
-#include "fault_simulation.h"
+#include "fframe.h"
+
+void cudaFaultSim(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCircuitTraversalOrder, int aNumCircuitInputs, int* aCircuitInputs, int aNumCircuitOutputs, int* aCircuitOutputs, int aNumTestVectors, uint8_t* aTestVectors, uint8_t* aDetectedFaults);
+void printCudaInfo();
 
 int main(int argc, char** argv) {
 
@@ -26,8 +29,8 @@ int main(int argc, char** argv) {
     int myNumCircuitInputs = myCircuit->theCircuitInputs.size();
     std::shared_ptr<int[]> myCircuitInputs(new int[myNumCircuitInputs]);
 
-    int myCircuitNumOutputs = myCircuit->theCircuitOutputs.size();
-    std::shared_ptr<int[]> myCircuitOutputs(new int[myCircuitNumOutputs]);
+    int myNumCircuitOutputs = myCircuit->theCircuitOutputs.size();
+    std::shared_ptr<int[]> myCircuitOutputs(new int[myNumCircuitOutputs]);
     createCircuitOutputs(myCircuitOutputs, *myCircuit, myCircuitMapping);
 
 
@@ -127,7 +130,10 @@ int main(int argc, char** argv) {
 
     std::cout << "\nFinished populating CUDA input data structures\n" << std::endl;
 
-    std::shared_ptr<std::uint8_t[]> myDetectedFaults(new std::uint8_t[myCircuitMapping.size()]);
+    printCudaInfo();
+
+    std::shared_ptr<std::uint8_t[]> myDetectedFaults(new std::uint8_t[myCircuitMapping.size() * 2]);
+    // cudaFaultSim(myCircuitMapping.size(), myCircuitStructure.get(), myNumCircuitInputs, myCircuitInputs.get(), myNumCircuitOutputs, myCircuitOutputs.get(), myNumTestVectors, myTestVectors.get(), myDetectedFaults.get());
 
     return 0;
 }

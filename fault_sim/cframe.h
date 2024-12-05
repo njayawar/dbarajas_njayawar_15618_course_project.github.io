@@ -103,7 +103,7 @@ const SignalType opNOT [5] = {SignalType::ONE, SignalType::ZERO, SignalType::D_b
 
 template <typename T>
 bool vectorContains(std::vector<T> aVector, T aValue){
-    return (std::ranges::find(aVector, aValue) != aVector.end());
+    return (std::find(aVector.begin(), aVector.end(), aValue) != aVector.end());
 }
 
 class Circuit {
