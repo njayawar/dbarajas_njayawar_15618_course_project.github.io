@@ -32,7 +32,7 @@ void remove_equals_sign(std::string& s) {
 
 // Splits an ISCAS line and returns vector of tokens consisting
 // of wire names and the type of gate
-static std::vector<std::string> tokenize_line(std::string s) {
+std::vector<std::string> tokenize_line(std::string s) {
     remove_brackets(s);
     remove_commas(s);
     remove_equals_sign(s);
