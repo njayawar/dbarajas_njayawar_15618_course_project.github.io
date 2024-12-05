@@ -18,7 +18,7 @@ LDFLAGS=-L/usr/local/cuda-11.7/lib64/ -lcudart
 NVCC=nvcc
 NVCCFLAGS=-O3 -m64 --gpu-architecture compute_61 -ccbin /usr/bin/gcc
 
-OBJS=$(OBJDIR)/main.o  $(OBJDIR)/fault_simulation.o $(OBJDIR)/cframe.o
+OBJS=$(OBJDIR)/main.o  $(OBJDIR)/fault_simulation.o $(OBJDIR)/cframe.o $(OBJDIR)/fframe.o
 
 
 .PHONY: dirs clean

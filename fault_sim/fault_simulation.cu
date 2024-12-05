@@ -1,89 +1,188 @@
 #include <stdio.h>
-
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <driver_functions.h>
 
 #include "CycleTimer.h"
+#include "fframe.h"
 
-extern float toBW(int bytes, float sec);
+#define LIMIT_NUM_SIGNALS 1024
 
-// saxpy_kernel -- (CUDA device code)
-//
-// Performs an element-wise SAXPY operation on the input data arrays
+struct GlobalConstants {
+    int numCircuitSignals;
+    int numCircuitInputs;
+    int numCircuitOutputs;
+    int numTestVectors;
+};
+
+__constant__ GlobalConstants cuConstParams;
+
 __global__ void
-saxpy_kernel(int N, float alpha, float* x, float* y, float* result) {
+faultSim_kernel(CudaGate* aCudaCircuitStructure, int* aCudaCircuitTraversalOrder, int* aCudaCircuitInputs,  int* aCudaCircuitOutputs,  uint8_t* aTestVectors, uint8_t* aDetectedFaults) {
 
-    // compute overall index from position of thread in current block,
-    // given the block we are in
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int myTestVectorIdx = blockIdx.x;
+    int myFaultIdx = threadIdx.x;
 
-    // If thread maps to a valid index, perform SAXPY
-    if (index < N) {
-       result[index] = alpha * x[index] + y[index];
+    __shared__ uint8_t myCorrectOutputs[LIMIT_NUM_SIGNALS];
+
+    uint8_t myLocalCircuitState[LIMIT_NUM_SIGNALS] = {0};
+    int myCurrTraversalIdx;
+
+    for (myCurrTraversalIdx = 0; myCurrTraversalIdx < cuConstParams.numCircuitInputs; myCurrTraversalIdx++) {
+        uint8_t myNewCircuitVal = aTestVectors[myTestVectorIdx*cuConstParams.numCircuitInputs + myCurrTraversalIdx];
+
+        if ((myFaultIdx != 0) && ((myFaultIdx-1) / 2) == aCudaCircuitTraversalOrder[myCurrTraversalIdx]){
+            if (((myFaultIdx-1) / 2) % 2 == 0) {
+                myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = 0;
+            } else {
+                myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = 1;
+            }
+        } else {
+            myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = myNewCircuitVal;
+        }
+    }
+
+    for (; myCurrTraversalIdx < cuConstParams.numCircuitSignals; myCurrTraversalIdx++) {
+
+        int myCurrentGateIdx = aCudaCircuitTraversalOrder[myCurrTraversalIdx];
+        CudaGate myCurrGate = aCudaCircuitStructure[myCurrentGateIdx];
+        uint8_t myNewCircuitVal = myCurrGate.fanin[0];
+        // enum class CudaGateType : uint8_t { AND, OR, NOT, XOR, NAND, NOR, BUFF, XNOR, INPUT};
+
+        switch (myCurrGate.gateType)
+        {
+        case CudaGateType::AND:
+            for (int myInputIdx = 1; myInputIdx < myCurrGate.faninSize; myInputIdx++) {
+                myNewCircuitVal &= myLocalCircuitState[myCurrGate.fanin[myInputIdx]];
+            }
+            break;
+        case CudaGateType::OR:
+            for (int myInputIdx = 1; myInputIdx < myCurrGate.faninSize; myInputIdx++) {
+                myNewCircuitVal |= myLocalCircuitState[myCurrGate.fanin[myInputIdx]];
+            }
+            break;
+        case CudaGateType::NOT:
+            myNewCircuitVal = !myCurrGate.fanin[0];
+            break;
+        case CudaGateType::XOR:
+            for (int myInputIdx = 1; myInputIdx < myCurrGate.faninSize; myInputIdx++) {
+                myNewCircuitVal ^= myLocalCircuitState[myCurrGate.fanin[myInputIdx]];
+            }
+            break;
+        case CudaGateType::NAND:
+            for (int myInputIdx = 1; myInputIdx < myCurrGate.faninSize; myInputIdx++) {
+                myNewCircuitVal &= myLocalCircuitState[myCurrGate.fanin[myInputIdx]];
+            }
+            myNewCircuitVal = !myNewCircuitVal;
+            break;
+        case CudaGateType::NOR:
+            for (int myInputIdx = 1; myInputIdx < myCurrGate.faninSize; myInputIdx++) {
+                myNewCircuitVal |= myLocalCircuitState[myCurrGate.fanin[myInputIdx]];
+            }
+            myNewCircuitVal = !myNewCircuitVal;
+            break;
+        case CudaGateType::XNOR:
+            for (int myInputIdx = 1; myInputIdx < myCurrGate.faninSize; myInputIdx++) {
+                myNewCircuitVal ^= myLocalCircuitState[myCurrGate.fanin[myInputIdx]];
+            }
+            myNewCircuitVal = !myNewCircuitVal;
+            break;
+        case CudaGateType::BUFF: // LEAVE EMPTY
+            /* code */
+            break;
+        case CudaGateType::INPUT: // LEAVE EMPTY
+            /* code */
+            printf("Error: Should not see input at this phase of traversal\n");
+            break;
+        default:
+            break;
+        }
+
+        if ((myFaultIdx != 0) && ((myFaultIdx-1) / 2) == aCudaCircuitTraversalOrder[myCurrTraversalIdx]){
+            if (((myFaultIdx-1) / 2) % 2 == 0) {
+                myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = 0;
+            } else {
+                myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = 1;
+            }
+        } else {
+            myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = myNewCircuitVal;
+        }
+    }
+
+    __syncthreads();
+
+    if (myFaultIdx == 0) {
+        for (int i = 0; i < cuConstParams.numCircuitOutputs; i++) {
+
+            int myOutputIdx = aCudaCircuitOutputs[i];
+            myCorrectOutputs[i] = myLocalCircuitState[myOutputIdx];
+
+        }
+    }
+
+    __syncthreads();
+
+    if (myFaultIdx != 0){
+        aDetectedFaults[myFaultIdx - 1] = 0;
+        for (int i = 0; i < cuConstParams.numCircuitOutputs; i++) {
+
+            int myOutputIdx = aCudaCircuitOutputs[i];
+            if (myCorrectOutputs[i] != myLocalCircuitState[myOutputIdx]) {
+                aDetectedFaults[myFaultIdx - 1] = 1;
+            }
+
+        }
     }
 }
 
-void
-saxpyCuda(int N, float alpha, float* xarray, float* yarray, float* resultarray) {
 
-    int totalBytes = sizeof(float) * 3 * N;
+void cudaFaultSim(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCircuitTraversalOrder, int aNumCircuitInputs, int* aCircuitInputs, int aNumCircuitOutputs, int* aCircuitOutputs, int aNumTestVectors, uint8_t* aTestVectors, uint8_t* aDetectedFaults) {
 
-    // compute number of blocks and threads per block
-    const int threadsPerBlock = 512;
-    const int blocks = (N + threadsPerBlock - 1) / threadsPerBlock;
+    // Compute number of blocks and threads per block
+    const int myThreadsPerBlock = (aNumCircuitSignals * 2) + 1;
+    const int myNumBlocks = aNumTestVectors;
 
-    float* device_x;
-    float* device_y;
-    float* device_result;
+    if (aNumCircuitSignals >= LIMIT_NUM_SIGNALS){
+        printf("Error: Too many signals within circuit - need to increase LIMIT_NUM_SIGNALS\n");
+    }
 
-    //
-    // TODO allocate device memory buffers on the GPU using cudaMalloc
-    //
-    int bytes = sizeof(float) * N;
-    cudaMalloc(&device_x, bytes);
-    cudaMalloc(&device_y, bytes);
-    cudaMalloc(&device_result, bytes);
+    // Allocate buffers on GPU
+    CudaGate* myCudaCircuitStructure;
+    int* myCudaCircuitTraversalOrder;
+    int* myCudaCircuitInputs;
+    int* myCudaCircuitOutputs;
+    uint8_t* myCudaTestVectors;
+    uint8_t* myCudaDetectedFaults;
+    cudaMalloc(&myCudaCircuitStructure, sizeof(CudaGate) * aNumCircuitSignals);
+    cudaMalloc(&myCudaCircuitTraversalOrder, sizeof(int) * aNumCircuitSignals);
+    cudaMalloc(&myCudaCircuitInputs, sizeof(int) * aNumCircuitInputs);
+    cudaMalloc(&myCudaCircuitOutputs, sizeof(int) * aNumCircuitOutputs);
+    cudaMalloc(&myCudaTestVectors, sizeof(uint8_t) * aNumCircuitInputs * aNumCircuitSignals);
+    cudaMalloc(&myCudaDetectedFaults, sizeof(uint8_t) * aNumCircuitSignals * 2);
 
     // start timing after allocation of device memory
     double startTime = CycleTimer::currentSeconds();
 
-    //
-    // TODO copy input arrays to the GPU using cudaMemcpy
-    //
-    cudaMemcpy(device_x, xarray, bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(device_y, yarray, bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(myCudaCircuitStructure, aCircuitStructure, sizeof(CudaGate) * aNumCircuitSignals, cudaMemcpyHostToDevice);
+    cudaMemcpy(myCudaCircuitTraversalOrder, aCircuitTraversalOrder, sizeof(int) * aNumCircuitSignals, cudaMemcpyHostToDevice);
+    cudaMemcpy(myCudaCircuitInputs, aCircuitInputs, sizeof(int) * aNumCircuitInputs, cudaMemcpyHostToDevice);
+    cudaMemcpy(myCudaCircuitOutputs, aCircuitOutputs, sizeof(int) * aNumCircuitOutputs, cudaMemcpyHostToDevice);
+    cudaMemcpy(myCudaTestVectors, aTestVectors, sizeof(uint8_t) * aNumCircuitInputs * aNumCircuitSignals, cudaMemcpyHostToDevice);
 
+    GlobalConstants params;
+    params.numCircuitSignals = aNumCircuitSignals;
+    params.numCircuitInputs = aNumCircuitInputs;
+    params.numCircuitInputs = aNumCircuitOutputs;
+    params.numTestVectors = aNumTestVectors;
+    cudaMemcpyToSymbol(cuConstParams, &params, sizeof(GlobalConstants));
 
-    // run kernel
-    double kernelStartTime = CycleTimer::currentSeconds();
-    saxpy_kernel<<<blocks, threadsPerBlock>>>(N, alpha, device_x, device_y, device_result);
+    // Run kernel
+    faultSim_kernel<<<myNumBlocks, myThreadsPerBlock>>>(myCudaCircuitStructure, myCudaCircuitTraversalOrder, myCudaCircuitInputs, myCudaCircuitOutputs, myCudaTestVectors, myCudaDetectedFaults);
     cudaDeviceSynchronize();
-    double kernelEndTime = CycleTimer::currentSeconds();
 
-    //
-    // TODO copy result from GPU using cudaMemcpy
-    //
-    cudaMemcpy(resultarray, device_result, bytes, cudaMemcpyDeviceToHost);
+    cudaMemcpy(aDetectedFaults, myCudaDetectedFaults, sizeof(uint8_t) * aNumCircuitSignals * 2, cudaMemcpyDeviceToHost);
 
-    // end timing after result has been copied back into host memory
     double endTime = CycleTimer::currentSeconds();
-
-    cudaError_t errCode = cudaPeekAtLastError();
-    if (errCode != cudaSuccess) {
-        fprintf(stderr, "WARNING: A CUDA error occured: code=%d, %s\n", errCode, cudaGetErrorString(errCode));
-    }
-
-    double kernelDuration = kernelEndTime - kernelStartTime;
-    double overallDuration = endTime - startTime;
-    printf("Kernel: %.3f ms\n", 1000.f * kernelDuration);
-    printf("Overall: %.3f ms\t\t[%.3f GB/s]\n", 1000.f * overallDuration, toBW(totalBytes, (overallDuration - kernelDuration)));
-
-    // TODO free memory buffers on the GPU
-    cudaFree(device_x);
-    cudaFree(device_y);
-    cudaFree(device_result);
-
 }
 
 void
