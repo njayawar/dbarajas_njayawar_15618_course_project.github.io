@@ -10,18 +10,22 @@
 #define MAX_FANIN_SIZE 10
 #define MAX_FANOUT_SIZE 10
 
-enum class CudaGateType : uint8_t { AND, OR, NOT, XOR, NAND, NOR, BUFF, XNOR };
+enum class CudaGateType : uint8_t { AND, OR, NOT, XOR, NAND, NOR, BUFF, XNOR, INPUT};
 
-struct CudaCircuit {
-    CudaGateType t;
-    int fanin_size;
-    int fanout_size;
+struct CudaGate {
+    CudaGateType gateType;
+    int faninSize;
+    int fanoutSize;
     int fanin[MAX_FANIN_SIZE];
     int fanout[MAX_FANOUT_SIZE];
 };
 
-void createCircuitStructure(std::shared_ptr<CudaCircuit[]> aCircuitStructure, Circuit& aCircuit, std::set<std::string> aCircuitMapping);
+void createCircuitStructure(std::shared_ptr<CudaGate[]> aCircuitStructure, Circuit& aCircuit, std::set<std::string> aCircuitMapping);
+void createCircuitInputs(std::shared_ptr<int[]> aCircuitInputs, Circuit& aCircuit, std::set<std::string> aCircuitMapping);
+void createCircuitOutputs(std::shared_ptr<int[]> aCircuitOutputs, Circuit& aCircuit, std::set<std::string> aCircuitMapping);
 
 std::set<std::string> createSignalsSet(Circuit& aCircuit);
+
+int getSignalMapping(std::set<std::string> aCircuitMapping, std::string aSignal);
 
 #endif

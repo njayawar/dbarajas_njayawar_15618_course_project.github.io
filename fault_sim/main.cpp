@@ -14,8 +14,22 @@ int main(int argc, char** argv) {
 
     std::set<std::string> myCircuitMapping = createSignalsSet(*myCircuit);
 
-    std::shared_ptr<CudaCircuit[]> myCircuitStructure(new CudaCircuit[myCircuitMapping.size()]);
+    std::cout << "\nDebug: Printing circuit signal mapping" << std::endl;
+    for (const auto& myElem : myCircuitMapping) {
+        std::cout << std::setw(30) << myElem << ": " << getSignalMapping(myCircuitMapping, myElem) << std::endl;
+    }
+    std::cout << std::endl;
+
+    std::shared_ptr<CudaGate[]> myCircuitStructure(new CudaGate[myCircuitMapping.size()]);
     createCircuitStructure(myCircuitStructure, *myCircuit, myCircuitMapping);
+
+    int myCircuitNumInputs = myCircuit->theCircuitInputs.size();
+    std::shared_ptr<int[]> myCircuitInputs(new int[myCircuitNumInputs]);
+    createCircuitInputs(myCircuitInputs, *myCircuit, myCircuitMapping);
+
+    int myCircuitNumOutputs = myCircuit->theCircuitOutputs.size();
+    std::shared_ptr<int[]> myCircuitOutputs(new int[myCircuitNumOutputs]);
+    createCircuitOutputs(myCircuitOutputs, *myCircuit, myCircuitMapping);
 
     return 0;
 }
