@@ -57,15 +57,6 @@ void createCircuitStructure(std::shared_ptr<CudaGate[]> aCircuitStructure, Circu
     }
 }
 
-void createCircuitInputs(std::shared_ptr<int[]> aCircuitInputs, Circuit& aCircuit, std::set<std::string> aCircuitMapping){
-    std::cout << "\nDebug: Populating circuit input array: ";
-    for (std::size_t myInputIdx = 0; myInputIdx < aCircuit.theCircuitInputs.size(); myInputIdx++){
-        aCircuitInputs[myInputIdx] = getSignalMapping(aCircuitMapping, aCircuit.theCircuitInputs[myInputIdx]);
-        std::cout << aCircuitInputs[myInputIdx] << " ";
-    }
-    std::cout << std::endl;
-}
-
 void createCircuitOutputs(std::shared_ptr<int[]> aCircuitOutputs, Circuit& aCircuit, std::set<std::string> aCircuitMapping){
     std::cout << "\nDebug: Populating circuit output array: ";
     for (std::size_t myOutputIdx = 0; myOutputIdx < aCircuit.theCircuitOutputs.size(); myOutputIdx++){

@@ -21,7 +21,6 @@ struct CudaGate {
 };
 
 void createCircuitStructure(std::shared_ptr<CudaGate[]> aCircuitStructure, Circuit& aCircuit, std::set<std::string> aCircuitMapping);
-void createCircuitInputs(std::shared_ptr<int[]> aCircuitInputs, Circuit& aCircuit, std::set<std::string> aCircuitMapping);
 void createCircuitOutputs(std::shared_ptr<int[]> aCircuitOutputs, Circuit& aCircuit, std::set<std::string> aCircuitMapping);
 
 std::set<std::string> createSignalsSet(Circuit& aCircuit);
