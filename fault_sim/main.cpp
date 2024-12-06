@@ -128,12 +128,47 @@ int main(int argc, char** argv) {
         std::cout << std::endl;
     }
 
+    std::vector<int> myTraversalOrderVector = std::vector<int>();
+    for (int i = 0; i < myNumCircuitInputs; i++){
+        myTraversalOrderVector.push_back(myCircuitInputs[i]);
+    }
+    while (myTraversalOrderVector.size() < myCircuitMapping.size()){
+        for (auto& mySignal : myCircuitMapping){
+            if (!vectorContains<int>(myTraversalOrderVector, getSignalMapping(myCircuitMapping, mySignal))) {
+                bool myInputsReady = true;
+                for (auto& myFanin : myCircuit->theCircuit[mySignal].inputs) {
+                    if (!vectorContains<int>(myTraversalOrderVector, getSignalMapping(myCircuitMapping, myFanin))) {
+                        myInputsReady = false;
+                    }
+                }
+                if (myInputsReady) {
+                    myTraversalOrderVector.push_back(getSignalMapping(myCircuitMapping, mySignal));
+                }
+            }
+        }
+    }
+
     std::cout << "\nFinished populating CUDA input data structures\n" << std::endl;
 
     printCudaInfo();
 
-    std::shared_ptr<std::uint8_t[]> myDetectedFaults(new std::uint8_t[myCircuitMapping.size() * 2]);
-    // cudaFaultSim(myCircuitMapping.size(), myCircuitStructure.get(), myNumCircuitInputs, myCircuitInputs.get(), myNumCircuitOutputs, myCircuitOutputs.get(), myNumTestVectors, myTestVectors.get(), myDetectedFaults.get());
+    std::shared_ptr<std::uint8_t[]> myDetectedFaults(new std::uint8_t[myCircuitMapping.size() * 2 * myNumTestVectors]);
+    cudaFaultSim(myCircuitMapping.size(), myCircuitStructure.get(), myTraversalOrderVector.data(), myNumCircuitInputs, myCircuitInputs.get(), myNumCircuitOutputs, myCircuitOutputs.get(), myNumTestVectors, myTestVectors.get(), myDetectedFaults.get());
+
+    std::cout << "\n--------------------- Fault Simulation Results ---------------------" << std::endl;
+    for (int myVectorIdx = 0; myVectorIdx < myNumTestVectors; myVectorIdx++) {
+        std::cout << "Test Vector: " << myVectorIdx << std::endl;
+        int myFaultCnt = 0;
+        for (std::size_t myFaultIdx = 0; myFaultIdx < myCircuitMapping.size() * 2; myFaultIdx+=2) {
+            int mySA0Idx = (myVectorIdx * myCircuitMapping.size() * 2) + myFaultIdx;
+            int mySA1Idx = (myVectorIdx * myCircuitMapping.size() * 2) + myFaultIdx + 1;
+            std::cout << std::setw(30) << (*std::next(myCircuitMapping.begin(), (myFaultIdx/2))) << " / 0 fault detected: " << static_cast<int>(myDetectedFaults[mySA0Idx]) << std::endl;
+            std::cout << std::setw(30) << (*std::next(myCircuitMapping.begin(), (myFaultIdx/2))) << " / 1 fault detected: " << static_cast<int>(myDetectedFaults[mySA1Idx]) << std::endl;
+            myFaultCnt += static_cast<int>(myDetectedFaults[mySA0Idx]) + static_cast<int>(myDetectedFaults[mySA1Idx]);
+        }
+        std::cout << "Total faults detected: " << myFaultCnt << std::endl;
+        std::cout << std::endl;
+    }
 
     return 0;
 }
