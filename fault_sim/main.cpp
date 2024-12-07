@@ -2,9 +2,12 @@
 
 #include "cframe.h"
 #include "fframe.h"
+#include "CycleTimer.h"
 
 void cudaFaultSim(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCircuitTraversalOrder, int aNumCircuitInputs, int* aCircuitInputs, int aNumCircuitOutputs, int* aCircuitOutputs, int aNumTestVectors, uint8_t* aTestVectors, uint8_t* aDetectedFaults);
 void printCudaInfo();
+
+void serialFaultSim(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCircuitTraversalOrder, int aNumCircuitInputs, int* aCircuitInputs, int aNumCircuitOutputs, int* aCircuitOutputs, int aNumTestVectors, uint8_t* aTestVectors, uint8_t* aDetectedFaults);
 
 int main(int argc, char** argv) {
 
@@ -153,7 +156,12 @@ int main(int argc, char** argv) {
     printCudaInfo();
 
     std::shared_ptr<std::uint8_t[]> myDetectedFaults(new std::uint8_t[myCircuitMapping.size() * 2 * myNumTestVectors]);
+    std::cout << "\nStarting Fault Simulation Timer" << std::endl;
+    double myStartTime = CycleTimer::currentSeconds();
     cudaFaultSim(myCircuitMapping.size(), myCircuitStructure.get(), myTraversalOrderVector.data(), myNumCircuitInputs, myCircuitInputs.get(), myNumCircuitOutputs, myCircuitOutputs.get(), myNumTestVectors, myTestVectors.get(), myDetectedFaults.get());
+    // serialFaultSim(myCircuitMapping.size(), myCircuitStructure.get(), myTraversalOrderVector.data(), myNumCircuitInputs, myCircuitInputs.get(), myNumCircuitOutputs, myCircuitOutputs.get(), myNumTestVectors, myTestVectors.get(), myDetectedFaults.get());
+    double myEndTime = CycleTimer::currentSeconds();
+    std::cout << "Ending Fault Simulation Timer" << std::endl;
 
     std::cout << "\n--------------------- Fault Simulation Results ---------------------" << std::endl;
     for (int myVectorIdx = 0; myVectorIdx < myNumTestVectors; myVectorIdx++) {
@@ -169,6 +177,7 @@ int main(int argc, char** argv) {
         std::cout << "Total faults detected: " << myFaultCnt << std::endl;
         std::cout << std::endl;
     }
+    std::cout << "Total execution time: " << (myEndTime - myStartTime) << std::endl;
 
     return 0;
 }
