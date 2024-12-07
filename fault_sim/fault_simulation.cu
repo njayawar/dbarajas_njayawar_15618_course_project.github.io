@@ -129,7 +129,6 @@ faultSim_kernel(CudaGate* aCudaCircuitStructure, int* aCudaCircuitTraversalOrder
             int myOutputIdx = aCudaCircuitOutputs[i];
             if (myCorrectOutputs[i] != myLocalCircuitState[myOutputIdx]) {
                 aDetectedFaults[myDetectedFaultsIdx] = 1;
-                printf("Found detected fault on output %d | Good: %d | Bad: %d\n", myOutputIdx, myCorrectOutputs[i], myLocalCircuitState[myOutputIdx]);
             }
 
         }
@@ -161,9 +160,6 @@ void cudaFaultSim(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCir
     cudaMalloc(&myCudaTestVectors, sizeof(uint8_t) * aNumCircuitInputs * aNumCircuitSignals);
     cudaMalloc(&myCudaDetectedFaults, sizeof(uint8_t) * aNumCircuitSignals * 2 * aNumTestVectors);
 
-    // start timing after allocation of device memory
-    double startTime = CycleTimer::currentSeconds();
-
     cudaMemcpy(myCudaCircuitStructure, aCircuitStructure, sizeof(CudaGate) * aNumCircuitSignals, cudaMemcpyHostToDevice);
     cudaMemcpy(myCudaCircuitTraversalOrder, aCircuitTraversalOrder, sizeof(int) * aNumCircuitSignals, cudaMemcpyHostToDevice);
     cudaMemcpy(myCudaCircuitInputs, aCircuitInputs, sizeof(int) * aNumCircuitInputs, cudaMemcpyHostToDevice);
@@ -182,8 +178,6 @@ void cudaFaultSim(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCir
     cudaDeviceSynchronize();
 
     cudaMemcpy(aDetectedFaults, myCudaDetectedFaults, sizeof(uint8_t) * aNumCircuitSignals * 2 * aNumTestVectors, cudaMemcpyDeviceToHost);
-
-    double endTime = CycleTimer::currentSeconds();
 }
 
 void

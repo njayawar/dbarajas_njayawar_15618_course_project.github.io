@@ -1,50 +1,38 @@
 #include <stdio.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <driver_functions.h>
 
-#include "CycleTimer.h"
 #include "fframe.h"
 
-#define LIMIT_NUM_SIGNALS 1024
-
-struct GlobalConstants {
-    int numCircuitSignals;
-    int numCircuitInputs;
-    int numCircuitOutputs;
-    int numTestVectors;
-};
-
-GlobalConstants cuConstParams;
+#define LIMIT_NUM_SIGNALS 10240
 
 void
-faultSim_serial(int myThreadsPerBlock, int myNumBlocks, CudaGate* aCudaCircuitStructure, int* aCudaCircuitTraversalOrder, int* aCudaCircuitInputs,  int* aCudaCircuitOutputs,  uint8_t* aTestVectors, uint8_t* aDetectedFaults) {
-    for (int myTestVectorIdx = 0; myTestVectorIdx < myNumBlocks; myTestVectorIdx++) {
-        for (int myFaultIdx = 0; myFaultIdx < myThreadsPerBlock; myFaultIdx++) {
+faultSim_serial(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCircuitTraversalOrder, int aNumCircuitInputs, int* aCircuitInputs, int aNumCircuitOutputs, int* aCircuitOutputs, int aNumTestVectors, uint8_t* aTestVectors, uint8_t* aDetectedFaults) {
+    for (int myTestVectorIdx = 0; myTestVectorIdx < aNumTestVectors; myTestVectorIdx++) {
 
-            uint8_t myCorrectOutputs[LIMIT_NUM_SIGNALS];
+        uint8_t myCorrectOutputs[LIMIT_NUM_SIGNALS];
+
+        for (int myFaultIdx = 0; myFaultIdx < (aNumCircuitSignals * 2) + 1; myFaultIdx++) {
 
             uint8_t myLocalCircuitState[LIMIT_NUM_SIGNALS];
             int myCurrTraversalIdx;
 
-            for (myCurrTraversalIdx = 0; myCurrTraversalIdx < cuConstParams.numCircuitInputs; myCurrTraversalIdx++) {
-                uint8_t myNewCircuitVal = aTestVectors[myTestVectorIdx*cuConstParams.numCircuitInputs + myCurrTraversalIdx];
+            for (myCurrTraversalIdx = 0; myCurrTraversalIdx < aNumCircuitInputs; myCurrTraversalIdx++) {
+                uint8_t myNewCircuitVal = aTestVectors[myTestVectorIdx*aNumCircuitInputs + myCurrTraversalIdx];
 
-                if ((myFaultIdx != 0) && ((myFaultIdx-1) / 2) == aCudaCircuitTraversalOrder[myCurrTraversalIdx]){
+                if ((myFaultIdx != 0) && ((myFaultIdx-1) / 2) == aCircuitTraversalOrder[myCurrTraversalIdx]){
                     if ((myFaultIdx-1) % 2 == 0) {
-                        myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = 0;
+                        myLocalCircuitState[aCircuitTraversalOrder[myCurrTraversalIdx]] = 0;
                     } else {
-                        myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = 1;
+                        myLocalCircuitState[aCircuitTraversalOrder[myCurrTraversalIdx]] = 1;
                     }
                 } else {
-                    myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = myNewCircuitVal;
+                    myLocalCircuitState[aCircuitTraversalOrder[myCurrTraversalIdx]] = myNewCircuitVal;
                 }
             }
 
-            for (; myCurrTraversalIdx < cuConstParams.numCircuitSignals; myCurrTraversalIdx++) {
+            for (; myCurrTraversalIdx < aNumCircuitSignals; myCurrTraversalIdx++) {
 
-                int myCurrentGateIdx = aCudaCircuitTraversalOrder[myCurrTraversalIdx];
-                CudaGate myCurrGate = aCudaCircuitStructure[myCurrentGateIdx];
+                int myCurrentGateIdx = aCircuitTraversalOrder[myCurrTraversalIdx];
+                CudaGate myCurrGate = aCircuitStructure[myCurrentGateIdx];
                 uint8_t myNewCircuitVal = myLocalCircuitState[myCurrGate.fanin[0]];
 
                 switch (myCurrGate.gateType)
@@ -96,35 +84,34 @@ faultSim_serial(int myThreadsPerBlock, int myNumBlocks, CudaGate* aCudaCircuitSt
                     break;
                 }
 
-                if ((myFaultIdx != 0) && ((myFaultIdx-1) / 2) == aCudaCircuitTraversalOrder[myCurrTraversalIdx]){
+                if ((myFaultIdx != 0) && ((myFaultIdx-1) / 2) == aCircuitTraversalOrder[myCurrTraversalIdx]){
                     if ((myFaultIdx-1) % 2 == 0) {
-                        myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = 0;
+                        myLocalCircuitState[aCircuitTraversalOrder[myCurrTraversalIdx]] = 0;
                     } else {
-                        myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = 1;
+                        myLocalCircuitState[aCircuitTraversalOrder[myCurrTraversalIdx]] = 1;
                     }
                 } else {
-                    myLocalCircuitState[aCudaCircuitTraversalOrder[myCurrTraversalIdx]] = myNewCircuitVal;
+                    myLocalCircuitState[aCircuitTraversalOrder[myCurrTraversalIdx]] = myNewCircuitVal;
                 }
             }
 
             if (myFaultIdx == 0) {
-                for (int i = 0; i < cuConstParams.numCircuitOutputs; i++) {
+                for (int i = 0; i < aNumCircuitOutputs; i++) {
 
-                    int myOutputIdx = aCudaCircuitOutputs[i];
+                    int myOutputIdx = aCircuitOutputs[i];
                     myCorrectOutputs[i] = myLocalCircuitState[myOutputIdx];
 
                 }
             }
 
             if (myFaultIdx != 0){
-                int myDetectedFaultsIdx = myTestVectorIdx * (cuConstParams.numCircuitSignals * 2) + myFaultIdx - 1;
+                int myDetectedFaultsIdx = myTestVectorIdx * (aNumCircuitSignals * 2) + myFaultIdx - 1;
                 aDetectedFaults[myDetectedFaultsIdx] = 0;
-                for (int i = 0; i < cuConstParams.numCircuitOutputs; i++) {
+                for (int i = 0; i < aNumCircuitOutputs; i++) {
 
-                    int myOutputIdx = aCudaCircuitOutputs[i];
+                    int myOutputIdx = aCircuitOutputs[i];
                     if (myCorrectOutputs[i] != myLocalCircuitState[myOutputIdx]) {
                         aDetectedFaults[myDetectedFaultsIdx] = 1;
-                        printf("Found detected fault on output %d | Good: %d | Bad: %d\n", myOutputIdx, myCorrectOutputs[i], myLocalCircuitState[myOutputIdx]);
                     }
 
                 }
@@ -134,74 +121,7 @@ faultSim_serial(int myThreadsPerBlock, int myNumBlocks, CudaGate* aCudaCircuitSt
 }
 
 
-void cudaFaultSim(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCircuitTraversalOrder, int aNumCircuitInputs, int* aCircuitInputs, int aNumCircuitOutputs, int* aCircuitOutputs, int aNumTestVectors, uint8_t* aTestVectors, uint8_t* aDetectedFaults) {
-
-    // Compute number of blocks and threads per block
-    const int myThreadsPerBlock = (aNumCircuitSignals * 2) + 1;
-    const int myNumBlocks = aNumTestVectors;
-
-    if (aNumCircuitSignals >= LIMIT_NUM_SIGNALS){
-        printf("Error: Too many signals within circuit - need to increase LIMIT_NUM_SIGNALS\n");
-    }
-
-    // Allocate buffers on GPU
-    CudaGate* myCudaCircuitStructure;
-    int* myCudaCircuitTraversalOrder;
-    int* myCudaCircuitInputs;
-    int* myCudaCircuitOutputs;
-    uint8_t* myCudaTestVectors;
-    uint8_t* myCudaDetectedFaults;
-    cudaMalloc(&myCudaCircuitStructure, sizeof(CudaGate) * aNumCircuitSignals);
-    cudaMalloc(&myCudaCircuitTraversalOrder, sizeof(int) * aNumCircuitSignals);
-    cudaMalloc(&myCudaCircuitInputs, sizeof(int) * aNumCircuitInputs);
-    cudaMalloc(&myCudaCircuitOutputs, sizeof(int) * aNumCircuitOutputs);
-    cudaMalloc(&myCudaTestVectors, sizeof(uint8_t) * aNumCircuitInputs * aNumCircuitSignals);
-    cudaMalloc(&myCudaDetectedFaults, sizeof(uint8_t) * aNumCircuitSignals * 2 * aNumTestVectors);
-
-    // start timing after allocation of device memory
-    double startTime = CycleTimer::currentSeconds();
-
-    cudaMemcpy(myCudaCircuitStructure, aCircuitStructure, sizeof(CudaGate) * aNumCircuitSignals, cudaMemcpyHostToDevice);
-    cudaMemcpy(myCudaCircuitTraversalOrder, aCircuitTraversalOrder, sizeof(int) * aNumCircuitSignals, cudaMemcpyHostToDevice);
-    cudaMemcpy(myCudaCircuitInputs, aCircuitInputs, sizeof(int) * aNumCircuitInputs, cudaMemcpyHostToDevice);
-    cudaMemcpy(myCudaCircuitOutputs, aCircuitOutputs, sizeof(int) * aNumCircuitOutputs, cudaMemcpyHostToDevice);
-    cudaMemcpy(myCudaTestVectors, aTestVectors, sizeof(uint8_t) * aNumCircuitInputs * aNumCircuitSignals, cudaMemcpyHostToDevice);
-
-    GlobalConstants params;
-    params.numCircuitSignals = aNumCircuitSignals;
-    params.numCircuitInputs = aNumCircuitInputs;
-    params.numCircuitOutputs = aNumCircuitOutputs;
-    params.numTestVectors = aNumTestVectors;
-    cudaMemcpyToSymbol(cuConstParams, &params, sizeof(GlobalConstants));
-
-    // Run kernel
-    faultSim_serial(myThreadsPerBlock, myNumBlocks, myCudaCircuitTraversalOrder, myCudaCircuitInputs, myCudaCircuitOutputs, myCudaTestVectors, myCudaDetectedFaults);
-    cudaDeviceSynchronize();
-
-    cudaMemcpy(aDetectedFaults, myCudaDetectedFaults, sizeof(uint8_t) * aNumCircuitSignals * 2 * aNumTestVectors, cudaMemcpyDeviceToHost);
-
-    double endTime = CycleTimer::currentSeconds();
-}
-
-void
-printCudaInfo() {
-
-    // for fun, just print out some stats on the machine
-
-    int deviceCount = 0;
-    cudaError_t err = cudaGetDeviceCount(&deviceCount);
-
-    printf("---------------------------------------------------------\n");
-    printf("Found %d CUDA devices\n", deviceCount);
-
-    for (int i=0; i<deviceCount; i++) {
-        cudaDeviceProp deviceProps;
-        cudaGetDeviceProperties(&deviceProps, i);
-        printf("Device %d: %s\n", i, deviceProps.name);
-        printf("   SMs:        %d\n", deviceProps.multiProcessorCount);
-        printf("   Global mem: %.0f MB\n",
-               static_cast<float>(deviceProps.totalGlobalMem) / (1024 * 1024));
-        printf("   CUDA Cap:   %d.%d\n", deviceProps.major, deviceProps.minor);
-    }
-    printf("---------------------------------------------------------\n");
+void serialFaultSim(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCircuitTraversalOrder, int aNumCircuitInputs, int* aCircuitInputs, int aNumCircuitOutputs, int* aCircuitOutputs, int aNumTestVectors, uint8_t* aTestVectors, uint8_t* aDetectedFaults) {
+// faultSim_serial(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCircuitTraversalOrder, int aNumCircuitInputs, int* aCircuitInputs, int aNumCircuitOutputs, int* aCircuitOutputs, int aNumTestVectors, uint8_t* aTestVectors, uint8_t* aDetectedFaults) {
+    faultSim_serial(aNumCircuitSignals, aCircuitStructure, aCircuitTraversalOrder, aNumCircuitInputs, aCircuitInputs, aNumCircuitOutputs, aCircuitOutputs, aNumTestVectors, aTestVectors, aDetectedFaults);
 }
