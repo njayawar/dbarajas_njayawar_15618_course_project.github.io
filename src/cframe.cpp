@@ -324,7 +324,9 @@ bool Circuit::setCircuitFault(std::string aFaultLocation, SignalType aFaultValue
     if (vectorContains<std::string>(theCircuitSignals, aFaultLocation)){
         theFaultLocation = aFaultLocation;
         theFaultValue = aFaultValue;
+        #ifdef DEBUG
         std::cout << "Info: Set fault value " << getSignalStateString(aFaultValue) << " to signal " << aFaultLocation<< std::endl;
+        #endif
         return true;
     } else {
         std::cout << "Error: Unable to set fault value " << getSignalStateString(aFaultValue) << " to signal " << aFaultLocation<< std::endl;

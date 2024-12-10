@@ -4,7 +4,9 @@
 void createCircuitStructure(std::shared_ptr<CudaGate[]> aCircuitStructure, Circuit& aCircuit, std::set<std::string> aCircuitMapping) {
 
     for (auto& [myCircuitSignal, myCircuitGate] : aCircuit.theCircuit){
+        #ifdef DEBUG
         std::cout << "Debug: Processing: " << myCircuitSignal << " | Fanin Size: " << myCircuitGate.inputs.size() << " | Fanout Size: " << myCircuitGate.outputs.size() << std::endl;
+        #endif
         if (myCircuitGate.inputs.size() > MAX_FANIN_SIZE){
             std::cout << "MAX_FANIN_SIZE = " << MAX_FANIN_SIZE << std::endl;
             std::cout << "Fatal Error: Not enough space allocated to support fanin of size " << myCircuitGate.inputs.size() << std::endl;
@@ -43,29 +45,45 @@ void createCircuitStructure(std::shared_ptr<CudaGate[]> aCircuitStructure, Circu
         aCircuitStructure[myMappedSignal].faninSize = myCircuitGate.inputs.size();
         aCircuitStructure[myMappedSignal].fanoutSize = myCircuitGate.outputs.size();
 
+        #ifdef DEBUG
         std::cout << "Debug: Fanin Signals: ";
+        #endif
         for (std::size_t myFaninSignalIdx = 0; myFaninSignalIdx < myCircuitGate.inputs.size(); myFaninSignalIdx++){
             aCircuitStructure[myMappedSignal].fanin[myFaninSignalIdx] = getSignalMapping(aCircuitMapping, myCircuitGate.inputs[myFaninSignalIdx]);
+            #ifdef DEBUG
             std::cout << aCircuitStructure[myMappedSignal].fanin[myFaninSignalIdx] << " ";
+            #endif
         }
 
+        #ifdef DEBUG
         std::cout << "\nDebug: Fanout Signals: ";
+        #endif
         for (std::size_t myFanoutSignalIdx = 0; myFanoutSignalIdx < myCircuitGate.outputs.size(); myFanoutSignalIdx++){
             aCircuitStructure[myMappedSignal].fanout[myFanoutSignalIdx] = getSignalMapping(aCircuitMapping, myCircuitGate.outputs[myFanoutSignalIdx]);
+            #ifdef DEBUG
             std::cout << aCircuitStructure[myMappedSignal].fanout[myFanoutSignalIdx] << " ";
+            #endif
         }
+        #ifdef DEBUG
         std::cout << std::endl;
+        #endif
 
     }
 }
 
 void createCircuitOutputs(std::shared_ptr<int[]> aCircuitOutputs, Circuit& aCircuit, std::set<std::string> aCircuitMapping){
+    #ifdef DEBUG
     std::cout << "\nDebug: Populating circuit output array: ";
+    #endif
     for (std::size_t myOutputIdx = 0; myOutputIdx < aCircuit.theCircuitOutputs.size(); myOutputIdx++){
         aCircuitOutputs[myOutputIdx] = getSignalMapping(aCircuitMapping, aCircuit.theCircuitOutputs[myOutputIdx]);
+        #ifdef DEBUG
         std::cout << aCircuitOutputs[myOutputIdx] << " ";
+        #endif
     }
+    #ifdef DEBUG
     std::cout << std::endl;
+    #endif
 }
 
 std::set<std::string> createSignalsSet(Circuit& aCircuit) {

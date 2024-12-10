@@ -1,6 +1,6 @@
 APP_NAME=atpg
 
-OBJS=main.o cframe.o
+OBJS=main.o cframe.o podem.o
 
 CXX = g++
 CXXFLAGS = -Wall -O3 -std=c++20 -m64 -I. -fopenmp -Wno-unknown-pragmas
@@ -15,6 +15,9 @@ $(APP_NAME): $(OBJS)
 mac: CXXFLAGS = $(MACFLAGS)
 mac: CXX = $(MACCXX)
 mac: $(APP_NAME)
+
+debug: CXXFLAGS += -DDEBUG
+debug: $(APP_NAME)
 
 %.o: %.cpp %.h
 	$(CXX) $(CXXFLAGS) -c $<

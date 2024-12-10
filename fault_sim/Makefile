@@ -25,6 +25,9 @@ OBJS=$(OBJDIR)/main.o  $(OBJDIR)/fault_simulation.o $(OBJDIR)/cframe.o $(OBJDIR)
 
 all: $(EXECUTABLE)
 
+debug: CXXFLAGS += -DDEBUG
+debug: $(EXECUTABLE)
+
 default: $(EXECUTABLE)
 
 dirs:
