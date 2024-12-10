@@ -12,17 +12,32 @@
 
 #include <unistd.h>
 #include <omp.h>
+#include <getopt.h>
 
 #include "cframe.h"
 
 // Global counter of total threads running
-#define MAX_THREADS 8
-#define MAX_ACTIVE_TASKS 20
-#define MAX_PARALLEL_OBJECTIVES 2
+int MAX_THREADS;
+int MAX_ACTIVE_TASKS;
+int MAX_PARALLEL_OBJECTIVES;
+char PARALLEL_MODE;
 
 bool mySolutionFound = false;
 int myTaskCnt = 0;
 int myMaxTaskCnt = 0;
+
+
+void usage(const char* progname) {
+    printf("Usage: %s [options]\n", progname);
+    printf("Program Options:\n");
+    printf("  -b  --bench <FILE>                  Run specified function on input\n");
+    printf("  -t  --max_threads <INT>             Number of threads to use\n");
+    printf("  -a  --max_active_tasks <INT>        Number of active tasks to use\n");
+    printf("  -o  --max_parallel_objectives <INT> Number of parallel objectives when parallelizing across decisions\n");
+    printf("  -m  --parallel_mode <char>          's' or 'd' parallelize across decisions or signals\n");
+    printf("  -?  --help                          This message\n");
+}
+
 
 bool errorAtPO(Circuit& aCircuit){
     for (auto& myOutput : aCircuit.theCircuitOutputs) {
@@ -57,12 +72,12 @@ std::vector<std::pair<std::string, SignalType>> getMultipleObjectives(Circuit& a
         return myObjectives;
     }
     for (std::string myDFrontierGate : aCircuit.theDFrontier) {
-        if (myObjectives.size() >= MAX_PARALLEL_OBJECTIVES) {
+        if (myObjectives.size() >= static_cast<std::size_t>(MAX_PARALLEL_OBJECTIVES)) {
             break;
         }
         for (auto& myDFrontierGateInput : aCircuit.theCircuit[myDFrontierGate].inputs) {
             if ((aCircuit.theCircuitState[myDFrontierGateInput] == SignalType::X)) {
-                if (myObjectives.size() >= MAX_PARALLEL_OBJECTIVES) {
+                if (myObjectives.size() >= static_cast<std::size_t>(MAX_PARALLEL_OBJECTIVES)) {
                     break;
                 }
                 myObjectives.push_back(std::pair<std::string, SignalType>(myDFrontierGateInput, getNonControllingValue(aCircuit.theCircuit[myDFrontierGate].gateType)));
@@ -386,8 +401,11 @@ std::unique_ptr<std::unordered_map<std::string, SignalType>> startPODEM(Circuit&
     #pragma omp single
     {
         // std::cout << "Coordinator Thread " << omp_get_thread_num() << std::endl;
-        // myTestVector = runPODEMRecursiveParallelDecisions(aCircuit);
-        myTestVector = runPODEMRecursiveParallelSignals(aCircuit);
+        if (PARALLEL_MODE == 's' || PARALLEL_MODE == 'S'){
+            myTestVector = runPODEMRecursiveParallelSignals(aCircuit);
+        } else {
+            myTestVector = runPODEMRecursiveParallelDecisions(aCircuit);
+        }
     }
 
     if (!myTestVector.empty()) {
@@ -453,14 +471,60 @@ std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordere
 
 int main(int argc, char** argv) {
 
-    if (argc != 2) {
-        std::cout << "Need to supply 1 input circuit file" << std::endl;
-        return -1;
+    // parse commandline options ////////////////////////////////////////////
+    int opt;
+    static struct option long_options[] = {
+        {"bench",            1, 0, 'b'},
+        {"max_threads",      1, 0, 't'},
+        {"max_active_tasks", 1, 0, 'a'},
+        {"max_parallel_objectives", 1, 0, 'o'},
+        {"parallel_mode",    1, 0, 'm'},
+        {"help",             0, 0, '?'},
+        {0 ,0, 0, 0}
+    };
+
+    std::string myCircuitFile;
+
+    while ((opt = getopt_long(argc, argv, "b:t:a:o:m:?", long_options, NULL)) != EOF) {
+        switch (opt) {
+        case 'b':
+            myCircuitFile = std::string(optarg);
+            break;
+        case 't':
+            MAX_THREADS = atoi(optarg);
+            break;
+        case 'a':
+            MAX_ACTIVE_TASKS = atoi(optarg);
+            break;
+        case 'o':
+            MAX_PARALLEL_OBJECTIVES = atoi(optarg);
+            break;
+        case 'm':
+            PARALLEL_MODE = *optarg;
+            break;
+        case '?':
+        default:
+            usage(argv[0]);
+            return 1;
+        }
     }
+
+    std::cout << "\nBench File: " << myCircuitFile << std::endl;
+    std::cout << "Threads: " << MAX_THREADS << std::endl;
+    std::cout << "Max Active Tasks: " << MAX_ACTIVE_TASKS << std::endl;
+    std::cout << "Max Parallel Objectives: " << MAX_PARALLEL_OBJECTIVES << std::endl;
+    if (PARALLEL_MODE == 's' || PARALLEL_MODE == 'S'){
+        std::cout << "Parallel Mode: Across Signals" << std::endl << std::endl;
+    } else {
+        std::cout << "Parallel Mode: Across Decisions" << std::endl << std::endl;
+    }
+
+
+    // end parsing of commandline options //////////////////////////////////////
 
     omp_set_num_threads(MAX_THREADS);
 
-    std::unique_ptr<Circuit> myCircuit = std::make_unique<Circuit>(argv[1]);
+    std::unique_ptr<Circuit> myCircuit = std::make_unique<Circuit>(myCircuitFile);
 
     std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>> myATPGData;
 
