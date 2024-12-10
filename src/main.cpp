@@ -18,6 +18,7 @@
 // Global counter of total threads running
 #define MAX_THREADS 8
 #define MAX_ACTIVE_TASKS 20
+#define MAX_PARALLEL_OBJECTIVES 2
 
 bool mySolutionFound = false;
 int myTaskCnt = 0;
@@ -45,6 +46,35 @@ SignalType getNonControllingValue(std::string aGate){
     }
     std::cout << "Error: Gate type " << aGate << " should not be on the DFrontier" << std::endl;
     return SignalType::ZERO;
+}
+
+
+std::vector<std::pair<std::string, SignalType>> getMultipleObjectives(Circuit& aCircuit){
+    std::vector<std::pair<std::string, SignalType>> myObjectives = std::vector<std::pair<std::string, SignalType>>();
+    if (aCircuit.theCircuitState[aCircuit.theFaultLocation] == SignalType::X){
+        SignalType mySAObjective = (aCircuit.theFaultValue == SignalType::D) ? SignalType::ONE : SignalType::ZERO;
+        myObjectives.push_back(std::pair<std::string, SignalType>(aCircuit.theFaultLocation, mySAObjective));
+        return myObjectives;
+    }
+    for (std::string myDFrontierGate : aCircuit.theDFrontier) {
+        if (myObjectives.size() >= MAX_PARALLEL_OBJECTIVES) {
+            break;
+        }
+        for (auto& myDFrontierGateInput : aCircuit.theCircuit[myDFrontierGate].inputs) {
+            if ((aCircuit.theCircuitState[myDFrontierGateInput] == SignalType::X)) {
+                if (myObjectives.size() >= MAX_PARALLEL_OBJECTIVES) {
+                    break;
+                }
+                myObjectives.push_back(std::pair<std::string, SignalType>(myDFrontierGateInput, getNonControllingValue(aCircuit.theCircuit[myDFrontierGate].gateType)));
+            }
+        }
+    }
+
+    if (myObjectives.size() == 0){
+        std::cout << "Error: Unable to create objective when it should have been possible" << std::endl;
+    }
+
+    return myObjectives;
 }
 
 
@@ -93,7 +123,7 @@ std::pair<std::string, SignalType> doBacktrace(Circuit& aCircuit, std::pair<std:
 }
 
 
-std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit){
+std::unordered_map<std::string, SignalType> runPODEMRecursiveParallelDecisions(Circuit& aCircuit){
 
     // aCircuit.printCircuitState();
     if (mySolutionFound) {
@@ -116,59 +146,6 @@ std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit)
     // std:: cout << "Info: My current decision: " << myDecision.first << " | " << myDecision.second << std::endl;
 
     // START OMP implementation
-    // if (myThreadCnt < MAX_PARALLEL_THREADS){
-
-    //     omp_set_lock(&myThreadCntLock);
-    //     std::cout << "Critial Section: Incrementing lock" << std::endl;
-    //     myThreadCnt++;
-    //     omp_unset_lock(&myThreadCntLock);
-
-    //     const int myNumThreads = 2;
-    //     std::unordered_map<std::string, SignalType> myPODEMResults[myNumThreads];
-    //     std::vector<Circuit> myCircuits = std::vector<Circuit>(myNumThreads);
-    //     #pragma omp parallel for schedule(dynamic) firstprivate(myDecision)
-    //     for (int i = 0; i < myNumThreads; i++) {
-    //         if (i == 1) {
-    //             myDecision.second = (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE;
-    //         } else if (i != 0) {
-    //             std::cout << "Error: Invalid iteration num" << std::endl;
-    //         }
-    //         myCircuits[i] = aCircuit;
-    //         myCircuits[i].setAndImplyCircuitInput(myDecision.first, myDecision.second);
-    //         myPODEMResults[i] = runPODEMRecursive(myCircuits[i]);
-    //     }
-
-    //     if (!myPODEMResults[0].empty()) {
-    //         // std::cout << "Case 0: " << (*aCircuit == *myCircuits[0]) << std::endl;
-    //         aCircuit = myCircuits[0];
-    //         return myPODEMResults[0];
-    //     } else if (!myPODEMResults[1].empty()) {
-    //         // std::cout << "Case 1: " << (*aCircuit == *myCircuits[1]) << std::endl;
-    //         aCircuit = myCircuits[1];
-    //         return myPODEMResults[1];
-    //     } else {
-    //         aCircuit.setAndImplyCircuitInput(myDecision.first, SignalType::X);
-    //         return std::unordered_map<std::string, SignalType>();
-    //     }
-    // } else {
-    //     std::cout << "Reached max limit: " << myThreadCnt << std::endl;
-    //     aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
-    //     std::unordered_map<std::string, SignalType> myPODEMResult = runPODEMRecursive(aCircuit);
-    //     if(!myPODEMResult.empty()){
-    //         return myPODEMResult;
-    //     }
-
-    //     myDecision.second = (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE;
-    //     aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
-    //     myPODEMResult = runPODEMRecursive(aCircuit);
-    //     if(!myPODEMResult.empty()){
-    //         return myPODEMResult;
-    //     }
-    //     aCircuit.setAndImplyCircuitInput(myDecision.first, SignalType::X);
-    //     return std::unordered_map<std::string, SignalType>();
-    // }
-
-
     const int myNumTasks = 2;
     std::unordered_map<std::string, SignalType> myPODEMResults[myNumTasks];
     std::vector<Circuit> myCircuits = std::vector<Circuit>(myNumTasks);
@@ -196,7 +173,7 @@ std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit)
                 // std::cout << "Executing task 0 in thread " << omp_get_thread_num() << " at nested level " << omp_get_level() << std::endl;
                 myCircuits[0] = aCircuit;
                 myCircuits[0].setAndImplyCircuitInput(myDecision.first, myDecision.second);
-                myPODEMResults[0] = runPODEMRecursive(myCircuits[0]);
+                myPODEMResults[0] = runPODEMRecursiveParallelDecisions(myCircuits[0]);
                 // finishedTasks0 = true;
                 #pragma omp critical
                 {
@@ -209,7 +186,7 @@ std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit)
                 // std::cout << "Executing task 1 in thread " << omp_get_thread_num() << " at nested level " << omp_get_level() << std::endl;
                 myCircuits[1] = aCircuit;
                 myCircuits[1].setAndImplyCircuitInput(myDecision.first, (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE);
-                myPODEMResults[1] = runPODEMRecursive(myCircuits[1]);
+                myPODEMResults[1] = runPODEMRecursiveParallelDecisions(myCircuits[1]);
                 // finishedTasks1 = true;
                 #pragma omp critical
                 {
@@ -241,14 +218,14 @@ std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit)
     } else {
 
         aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
-        std::unordered_map<std::string, SignalType> myPODEMResult = runPODEMRecursive(aCircuit);
+        std::unordered_map<std::string, SignalType> myPODEMResult = runPODEMRecursiveParallelDecisions(aCircuit);
         if(!myPODEMResult.empty()){
             return myPODEMResult;
         }
 
         myDecision.second = (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE;
         aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
-        myPODEMResult = runPODEMRecursive(aCircuit);
+        myPODEMResult = runPODEMRecursiveParallelDecisions(aCircuit);
         if(!myPODEMResult.empty()){
             return myPODEMResult;
         }
@@ -259,14 +236,137 @@ std::unordered_map<std::string, SignalType> runPODEMRecursive(Circuit& aCircuit)
 
     // START serial implementation
     // aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
-    // std::unordered_map<std::string, SignalType> myPODEMResult = runPODEMRecursive(aCircuit);
+    // std::unordered_map<std::string, SignalType> myPODEMResult = runPODEMRecursiveParallelDecisions(aCircuit);
     // if(!myPODEMResult.empty()){
     //     return myPODEMResult;
     // }
 
     // myDecision.second = (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE;
     // aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
-    // myPODEMResult = runPODEMRecursive(aCircuit);
+    // myPODEMResult = runPODEMRecursiveParallelDecisions(aCircuit);
+    // if(!myPODEMResult.empty()){
+    //     return myPODEMResult;
+    // }
+    // aCircuit.setAndImplyCircuitInput(myDecision.first, SignalType::X);
+    // return std::unordered_map<std::string, SignalType>();
+    // END serial implementation
+}
+
+
+std::unordered_map<std::string, SignalType> runPODEMRecursiveParallelSignals(Circuit& aCircuit){
+
+    // aCircuit.printCircuitState();
+    if (mySolutionFound) {
+        return std::unordered_map<std::string, SignalType>();
+    }
+
+    if (errorAtPO(aCircuit)){
+        mySolutionFound = true;
+        return aCircuit.getCurrCircuitInputValues();
+    }
+    if (aCircuit.theDFrontier.empty() && !(aCircuit.theCircuitState[aCircuit.theFaultLocation] == SignalType::X)){
+        return std::unordered_map<std::string, SignalType>();
+    }
+    std::vector<std::pair<std::string, SignalType>> myObjectives = getMultipleObjectives(aCircuit);
+    int myObjectivesSize = myObjectives.size();
+
+    // std:: cout << "Info: My current objective: " << myObjective.first << " | " << myObjective.second << std::endl;
+
+    // std:: cout << "Info: My current decision: " << myDecision.first << " | " << myDecision.second << std::endl;
+
+
+    // START OMP implementation
+    const int myNumTasks = MAX_PARALLEL_OBJECTIVES;
+    std::unordered_map<std::string, SignalType> myPODEMResults[myNumTasks];
+    std::vector<Circuit> myCircuits = std::vector<Circuit>(myNumTasks);
+
+    // std::cout << "Number of active tasks: " << myTaskCnt << std::endl;
+
+    if (myTaskCnt < MAX_ACTIVE_TASKS){
+
+        #pragma omp critical
+        {
+            myTaskCnt += myObjectives.size();
+            if (myTaskCnt > myMaxTaskCnt) {
+                myMaxTaskCnt = myTaskCnt;
+            }
+        }
+
+        #pragma taskgroup
+        {
+            // std::cout << "Spawning tasks from thread " << omp_get_thread_num() << std::endl;
+            for (int i = 0; i < myObjectivesSize; i++) {
+                std::pair<std::string, SignalType> myObjective = myObjectives[i];
+                #pragma omp task untied shared(myCircuits) shared(myPODEMResults)
+                {
+                    std::pair<std::string, SignalType> myDecision = doBacktrace(aCircuit, myObjective);
+
+                    myCircuits[i] = aCircuit;
+                    myCircuits[i].setAndImplyCircuitInput(myDecision.first, myDecision.second);
+                    myPODEMResults[i] = runPODEMRecursiveParallelSignals(myCircuits[i]);
+
+                    if(myPODEMResults[i].empty()){
+                        myDecision.second = (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE;
+                        myCircuits[i].setAndImplyCircuitInput(myDecision.first, myDecision.second);
+                        myPODEMResults[i] = runPODEMRecursiveParallelSignals(myCircuits[i]);
+                    }
+
+                    #pragma omp critical
+                    {
+                        myTaskCnt--;
+                    }
+                }
+            }
+            // std::cout << "Thread waiting at taskwait " << omp_get_thread_num() << std::endl;
+            #pragma omp taskwait
+        }
+        // }
+        // std::cout << "Thread proceeding after taskwait " << omp_get_thread_num() << std::endl;
+
+        // while (!finishedTasks0 || !finishedTasks1) {
+        //     #pragma omp taskyield
+        // }
+
+        for (int i = 0; i < myObjectivesSize; i++) {
+            if (!myPODEMResults[i].empty()) {
+                aCircuit = myCircuits[i];
+                return myPODEMResults[i];
+            }
+        }
+
+        return std::unordered_map<std::string, SignalType>();
+
+    } else {
+        std::pair<std::string, SignalType> myDecision = doBacktrace(aCircuit, myObjectives[0]);
+
+        aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
+        std::unordered_map<std::string, SignalType> myPODEMResult = runPODEMRecursiveParallelSignals(aCircuit);
+        if(!myPODEMResult.empty()){
+            return myPODEMResult;
+        }
+
+        myDecision.second = (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE;
+        aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
+        myPODEMResult = runPODEMRecursiveParallelSignals(aCircuit);
+        if(!myPODEMResult.empty()){
+            return myPODEMResult;
+        }
+        aCircuit.setAndImplyCircuitInput(myDecision.first, SignalType::X);
+        return std::unordered_map<std::string, SignalType>();
+
+    }
+    // END OMP implementation
+
+    // START serial implementation
+    // aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
+    // std::unordered_map<std::string, SignalType> myPODEMResult = runPODEMRecursiveParallelSignals(aCircuit);
+    // if(!myPODEMResult.empty()){
+    //     return myPODEMResult;
+    // }
+
+    // myDecision.second = (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE;
+    // aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
+    // myPODEMResult = runPODEMRecursiveParallelSignals(aCircuit);
     // if(!myPODEMResult.empty()){
     //     return myPODEMResult;
     // }
@@ -286,7 +386,8 @@ std::unique_ptr<std::unordered_map<std::string, SignalType>> startPODEM(Circuit&
     #pragma omp single
     {
         // std::cout << "Coordinator Thread " << omp_get_thread_num() << std::endl;
-        myTestVector = runPODEMRecursive(aCircuit);
+        // myTestVector = runPODEMRecursiveParallelDecisions(aCircuit);
+        myTestVector = runPODEMRecursiveParallelSignals(aCircuit);
     }
 
     if (!myTestVector.empty()) {
