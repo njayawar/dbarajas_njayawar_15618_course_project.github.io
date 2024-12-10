@@ -6,12 +6,12 @@ void createCircuitStructure(std::shared_ptr<CudaGate[]> aCircuitStructure, Circu
     for (auto& [myCircuitSignal, myCircuitGate] : aCircuit.theCircuit){
         std::cout << "Debug: Processing: " << myCircuitSignal << " | Fanin Size: " << myCircuitGate.inputs.size() << " | Fanout Size: " << myCircuitGate.outputs.size() << std::endl;
         if (myCircuitGate.inputs.size() > MAX_FANIN_SIZE){
-            // std::cout << "MAX_FANIN_SIZE = " << MAX_FANIN_SIZE << std::endl;
+            std::cout << "MAX_FANIN_SIZE = " << MAX_FANIN_SIZE << std::endl;
             std::cout << "Fatal Error: Not enough space allocated to support fanin of size " << myCircuitGate.inputs.size() << std::endl;
             return;
         }
         if (myCircuitGate.outputs.size() > MAX_FANOUT_SIZE){
-            // std::cout << "MAX_FANOUT_SIZE = " << MAX_FANOUT_SIZE << std::endl;
+            std::cout << "MAX_FANOUT_SIZE = " << MAX_FANOUT_SIZE << std::endl;
             std::cout << "Fatal Error: Not enough space allocated to support fanout of size " << myCircuitGate.outputs.size() << std::endl;
             return;
         }
