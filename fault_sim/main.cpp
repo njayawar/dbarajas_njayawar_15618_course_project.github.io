@@ -29,6 +29,8 @@ int main(int argc, char** argv) {
     std::shared_ptr<CudaGate[]> myCircuitStructure(new CudaGate[myCircuitMapping.size()]);
     createCircuitStructure(myCircuitStructure, *myCircuit, myCircuitMapping);
 
+    std::cout << "Finished structure" << std::endl;
+
     int myNumCircuitInputs = myCircuit->theCircuitInputs.size();
     std::shared_ptr<int[]> myCircuitInputs(new int[myNumCircuitInputs]);
 
@@ -156,28 +158,50 @@ int main(int argc, char** argv) {
     printCudaInfo();
 
     std::shared_ptr<std::uint8_t[]> myDetectedFaults(new std::uint8_t[myCircuitMapping.size() * 2 * myNumTestVectors]);
-    std::cout << "\nStarting Fault Simulation Timer" << std::endl;
-    double myStartTime = CycleTimer::currentSeconds();
+    std::cout << "\nStarting Parallel Fault Simulation Timer" << std::endl;
+    double myParallelStartTime = CycleTimer::currentSeconds();
     cudaFaultSim(myCircuitMapping.size(), myCircuitStructure.get(), myTraversalOrderVector.data(), myNumCircuitInputs, myCircuitInputs.get(), myNumCircuitOutputs, myCircuitOutputs.get(), myNumTestVectors, myTestVectors.get(), myDetectedFaults.get());
-    // serialFaultSim(myCircuitMapping.size(), myCircuitStructure.get(), myTraversalOrderVector.data(), myNumCircuitInputs, myCircuitInputs.get(), myNumCircuitOutputs, myCircuitOutputs.get(), myNumTestVectors, myTestVectors.get(), myDetectedFaults.get());
-    double myEndTime = CycleTimer::currentSeconds();
-    std::cout << "Ending Fault Simulation Timer" << std::endl;
+    double myParallelEndTime = CycleTimer::currentSeconds();
+    std::cout << "Ending Parallel Fault Simulation Timer" << std::endl;
 
-    std::cout << "\n--------------------- Fault Simulation Results ---------------------" << std::endl;
+    std::cout << "\n--------------------- Parallel Fault Simulation Results ---------------------" << std::endl;
     for (int myVectorIdx = 0; myVectorIdx < myNumTestVectors; myVectorIdx++) {
         std::cout << "Test Vector: " << myVectorIdx << std::endl;
         int myFaultCnt = 0;
         for (std::size_t myFaultIdx = 0; myFaultIdx < myCircuitMapping.size() * 2; myFaultIdx+=2) {
             int mySA0Idx = (myVectorIdx * myCircuitMapping.size() * 2) + myFaultIdx;
             int mySA1Idx = (myVectorIdx * myCircuitMapping.size() * 2) + myFaultIdx + 1;
-            std::cout << std::setw(30) << (*std::next(myCircuitMapping.begin(), (myFaultIdx/2))) << " / 0 fault detected: " << static_cast<int>(myDetectedFaults[mySA0Idx]) << std::endl;
-            std::cout << std::setw(30) << (*std::next(myCircuitMapping.begin(), (myFaultIdx/2))) << " / 1 fault detected: " << static_cast<int>(myDetectedFaults[mySA1Idx]) << std::endl;
+            // std::cout << std::setw(30) << (*std::next(myCircuitMapping.begin(), (myFaultIdx/2))) << " / 0 fault detected: " << static_cast<int>(myDetectedFaults[mySA0Idx]) << std::endl;
+            // std::cout << std::setw(30) << (*std::next(myCircuitMapping.begin(), (myFaultIdx/2))) << " / 1 fault detected: " << static_cast<int>(myDetectedFaults[mySA1Idx]) << std::endl;
             myFaultCnt += static_cast<int>(myDetectedFaults[mySA0Idx]) + static_cast<int>(myDetectedFaults[mySA1Idx]);
         }
-        std::cout << "Total faults detected: " << myFaultCnt << std::endl;
+        std::cout << "Total faults detected: " << myFaultCnt << " / " << (myCircuitMapping.size() * 2) << std::endl;
         std::cout << std::endl;
     }
-    std::cout << "Total execution time: " << (myEndTime - myStartTime) << std::endl;
+
+    std::cout << "\nStarting Serial Fault Simulation Timer" << std::endl;
+    double mySerialStartTime = CycleTimer::currentSeconds();
+    serialFaultSim(myCircuitMapping.size(), myCircuitStructure.get(), myTraversalOrderVector.data(), myNumCircuitInputs, myCircuitInputs.get(), myNumCircuitOutputs, myCircuitOutputs.get(), myNumTestVectors, myTestVectors.get(), myDetectedFaults.get());
+    double mySerialEndTime = CycleTimer::currentSeconds();
+    std::cout << "Ending Serial Fault Simulation Timer" << std::endl;
+
+    std::cout << "\n--------------------- Serial Fault Simulation Results ---------------------" << std::endl;
+    for (int myVectorIdx = 0; myVectorIdx < myNumTestVectors; myVectorIdx++) {
+        std::cout << "Test Vector: " << myVectorIdx << std::endl;
+        int myFaultCnt = 0;
+        for (std::size_t myFaultIdx = 0; myFaultIdx < myCircuitMapping.size() * 2; myFaultIdx+=2) {
+            int mySA0Idx = (myVectorIdx * myCircuitMapping.size() * 2) + myFaultIdx;
+            int mySA1Idx = (myVectorIdx * myCircuitMapping.size() * 2) + myFaultIdx + 1;
+            // std::cout << std::setw(30) << (*std::next(myCircuitMapping.begin(), (myFaultIdx/2))) << " / 0 fault detected: " << static_cast<int>(myDetectedFaults[mySA0Idx]) << std::endl;
+            // std::cout << std::setw(30) << (*std::next(myCircuitMapping.begin(), (myFaultIdx/2))) << " / 1 fault detected: " << static_cast<int>(myDetectedFaults[mySA1Idx]) << std::endl;
+            myFaultCnt += static_cast<int>(myDetectedFaults[mySA0Idx]) + static_cast<int>(myDetectedFaults[mySA1Idx]);
+        }
+        std::cout << "Total faults detected: " << myFaultCnt << " / " << (myCircuitMapping.size() * 2) << std::endl;
+        std::cout << std::endl;
+    }
+
+    std::cout << "Total parallel execution time: " << (myParallelEndTime - myParallelStartTime) << std::endl;
+    std::cout << "Total serial execution time: " << (mySerialEndTime - mySerialStartTime) << std::endl;
 
     return 0;
 }

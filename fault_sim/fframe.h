@@ -7,8 +7,8 @@
 
 #include "cframe.h"
 
-#define MAX_FANIN_SIZE 10
-#define MAX_FANOUT_SIZE 10
+#define MAX_FANIN_SIZE 15
+#define MAX_FANOUT_SIZE 15
 
 enum class CudaGateType : uint8_t { AND, OR, NOT, XOR, NAND, NOR, BUFF, XNOR, INPUT};
 
