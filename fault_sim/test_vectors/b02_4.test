@@ -1,0 +1,6 @@
+vectors 4
+inputs LINEA STATO_REG_2_ STATO_REG_1_ STATO_REG_0_ 
+0: 1000
+1: 1011
+2: 1111
+3: 1100
