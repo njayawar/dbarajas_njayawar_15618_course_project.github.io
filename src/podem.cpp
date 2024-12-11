@@ -232,14 +232,14 @@ std::unordered_map<std::string, SignalType> runPODEMRecursiveSerial(Circuit& aCi
     // std:: cout << "Info: My current decision: " << myDecision.first << " | " << myDecision.second << std::endl;
 
     aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
-    std::unordered_map<std::string, SignalType> myPODEMResult = runPODEMRecursiveParallelDecisions(aCircuit);
+    std::unordered_map<std::string, SignalType> myPODEMResult = runPODEMRecursiveSerial(aCircuit);
     if(!myPODEMResult.empty()){
         return myPODEMResult;
     }
 
     myDecision.second = (myDecision.second == SignalType::ONE) ? SignalType::ZERO : SignalType::ONE;
     aCircuit.setAndImplyCircuitInput(myDecision.first, myDecision.second);
-    myPODEMResult = runPODEMRecursiveParallelDecisions(aCircuit);
+    myPODEMResult = runPODEMRecursiveSerial(aCircuit);
     if(!myPODEMResult.empty()){
         return myPODEMResult;
     }
