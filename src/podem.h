@@ -22,6 +22,8 @@ extern int theMaxTaskCnt;
 
 extern bool theSolutionFound;
 
+extern std::chrono::_V2::steady_clock::time_point mySingleSSLATPGStartTime;
+
 std::unordered_map<std::string, SignalType> runPODEMRecursiveParallelSignals(Circuit& aCircuit);
 std::unordered_map<std::string, SignalType> runPODEMRecursiveParallelDecisions(Circuit& aCircuit);
 std::unordered_map<std::string, SignalType> runPODEMRecursiveSerial(Circuit& aCircuit);

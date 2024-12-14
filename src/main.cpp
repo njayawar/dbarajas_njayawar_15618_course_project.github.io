@@ -30,6 +30,8 @@ int theTaskCnt = 0;
 int theMaxTaskCnt = 0;
 double theTotalComputationTime = 0;
 
+std::chrono::_V2::steady_clock::time_point mySingleSSLATPGStartTime = std::chrono::steady_clock::now();
+
 
 void usage(const char* progname) {
     printf("Usage: %s [options]\n", progname);
@@ -100,8 +102,12 @@ std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordere
 
     std::vector<std::string> myTest = std::vector<std::string>();
     for (auto& mySignalPair : aCircuit.theCircuit){
-        mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D));
-        mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D_b));
+        if (!((0))){
+            mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D));
+        }
+        if (!((0))){
+            mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D_b));
+        }
     }
     // mySSLFaults.push_back(std::pair<std::string, SignalType>("213_BRANCH0_259", SignalType::D));
 
@@ -116,7 +122,7 @@ std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordere
         std::cout << "Info: Running PODEM to detect fault: " << myTargetSSLFault.first << " | SA: " << (myTargetSSLFault.second == SignalType::D ? '0' : '1') << std::endl;
         #endif
 
-        const auto mySingleSSLATPGStartTime = std::chrono::steady_clock::now();
+        mySingleSSLATPGStartTime = std::chrono::steady_clock::now();
         std::unique_ptr<std::unordered_map<std::string, SignalType>> myTestVector = startPODEM(aCircuit, myTargetSSLFault);
         const auto mySingleSSLATPGTime = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - mySingleSSLATPGStartTime).count();
         myTotalComputationTime += mySingleSSLATPGTime;

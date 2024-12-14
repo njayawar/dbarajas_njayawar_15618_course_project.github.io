@@ -11,7 +11,7 @@ touch ./benchmarks_results.txt
 for CIRCUIT in c17 c25 c432 c7552
 do
     BENCH=../resource/benchmarks/ISCAS85/$CIRCUIT.bench
-    for TEST_VECTOR in $(ls ./test_vectors/*${CIRCUIT}*)
+    for TEST_VECTOR in $(ls ./test_vectors/*${CIRCUIT}* | sort -t'_' -k3 -n)
     do
         echo $TEST_VECTOR
         ./faultSimulation $BENCH $TEST_VECTOR

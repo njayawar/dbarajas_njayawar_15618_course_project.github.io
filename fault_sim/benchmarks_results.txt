@@ -1,120 +1,120 @@
-Serial      c17 128 : 0.000232154
-Parallel    c17 128 : 0.221095
+Serial      c17   5 : 1.24847e-05
+Parallel    c17   5 : 0.114974
 
-Serial      c17  16 : 0.000123753
-Parallel    c17  16 : 0.0788952
+Serial      c17   1 : 3.688e-06
+Parallel    c17   1 : 0.0813435
 
-Serial      c17   1 : 4.39767e-06
-Parallel    c17   1 : 0.080924
+Serial      c17   2 : 6.01067e-06
+Parallel    c17   2 : 0.0656098
 
-Serial      c17 256 : 0.000443132
-Parallel    c17 256 : 0.0557141
+Serial      c17   4 : 2.83563e-05
+Parallel    c17   4 : 0.0613524
 
-Serial      c17   2 : 6.57867e-06
-Parallel    c17   2 : 0.0596426
+Serial      c17   8 : 5.0963e-05
+Parallel    c17   8 : 0.0634624
 
-Serial      c17  32 : 0.000187818
-Parallel    c17  32 : 0.0837838
+Serial      c17  16 : 3.17737e-05
+Parallel    c17  16 : 0.0685783
 
-Serial      c17   4 : 1.1262e-05
-Parallel    c17   4 : 0.0562402
+Serial      c17  32 : 5.9228e-05
+Parallel    c17  32 : 0.0626411
 
-Serial      c17  64 : 0.000118013
-Parallel    c17  64 : 0.0611349
+Serial      c17  64 : 0.000113268
+Parallel    c17  64 : 0.0611763
 
-Serial      c17   8 : 1.85383e-05
-Parallel    c17   8 : 0.0568504
+Serial      c17 128 : 0.00022241
+Parallel    c17 128 : 0.0623928
 
-Serial      c17   5 : 4.94973e-05
-Parallel    c17   5 : 0.0601203
+Serial      c17 256 : 0.000430589
+Parallel    c17 256 : 0.0598222
 
-Serial      c25 128 : 0.000525367
-Parallel    c25 128 : 0.0916917
+Serial      c25   5 : 3.7305e-05
+Parallel    c25   5 : 0.0661186
 
-Serial      c25  16 : 7.06953e-05
-Parallel    c25  16 : 0.0611754
+Serial      c25   1 : 6.369e-06
+Parallel    c25   1 : 0.0598389
 
-Serial      c25   1 : 6.789e-06
-Parallel    c25   1 : 0.0636743
+Serial      c25   2 : 1.0742e-05
+Parallel    c25   2 : 0.0662255
 
-Serial      c25 256 : 0.0010512
-Parallel    c25 256 : 0.0614604
+Serial      c25   4 : 1.94623e-05
+Parallel    c25   4 : 0.0610896
 
-Serial      c25   2 : 3.24653e-05
-Parallel    c25   2 : 0.0574221
+Serial      c25   8 : 9.9303e-05
+Parallel    c25   8 : 0.0671475
 
-Serial      c25  32 : 0.000463479
-Parallel    c25  32 : 0.0796098
+Serial      c25  16 : 0.000255946
+Parallel    c25  16 : 0.056697
 
-Serial      c25   4 : 2.04597e-05
-Parallel    c25   4 : 0.0686019
+Serial      c25  32 : 0.000126797
+Parallel    c25  32 : 0.0791271
 
-Serial      c25  64 : 0.000259933
-Parallel    c25  64 : 0.0674971
+Serial      c25  64 : 0.000254344
+Parallel    c25  64 : 0.0591393
 
-Serial      c25   8 : 3.7007e-05
-Parallel    c25   8 : 0.0808234
+Serial      c25 128 : 0.000502323
+Parallel    c25 128 : 0.0645943
 
-Serial      c25   5 : 2.54307e-05
-Parallel    c25   5 : 0.0773172
+Serial      c25 256 : 0.00103117
+Parallel    c25 256 : 0.0594714
 
-Serial     c432 128 : 0.197551
-Parallel   c432 128 : 0.097661
+Serial     c432 216 : 0.302769
+Parallel   c432 216 : 0.0903906
 
-Serial     c432  16 : 0.0240773
-Parallel   c432  16 : 0.0575134
+Serial     c432   1 : 0.00142607
+Parallel   c432   1 : 0.0597388
 
-Serial     c432   1 : 0.00153568
-Parallel   c432   1 : 0.0614525
+Serial     c432   2 : 0.00287433
+Parallel   c432   2 : 0.0561926
 
-Serial     c432 256 : 0.384725
-Parallel   c432 256 : 0.095621
+Serial     c432   4 : 0.00573713
+Parallel   c432   4 : 0.0560401
 
-Serial     c432   2 : 0.00311143
-Parallel   c432   2 : 0.0563407
+Serial     c432   8 : 0.0115032
+Parallel   c432   8 : 0.0598928
 
-Serial     c432  32 : 0.0484945
-Parallel   c432  32 : 0.0820311
+Serial     c432  16 : 0.0228456
+Parallel   c432  16 : 0.0743634
 
-Serial     c432   4 : 0.00619808
-Parallel   c432   4 : 0.106809
+Serial     c432  32 : 0.046264
+Parallel   c432  32 : 0.0586802
 
-Serial     c432  64 : 0.0978559
-Parallel   c432  64 : 0.0746931
+Serial     c432  64 : 0.0904726
+Parallel   c432  64 : 0.0895917
 
-Serial     c432   8 : 0.0121161
-Parallel   c432   8 : 0.0571729
+Serial     c432 128 : 0.180366
+Parallel   c432 128 : 0.0805974
 
-Serial     c432 216 : 0.32309
-Parallel   c432 216 : 0.0893529
+Serial     c432 256 : 0.360909
+Parallel   c432 256 : 0.0964613
 
-Serial    c7552 128 : 87.2996
-Parallel  c7552 128 : 7.27205
+Serial    c7552  18 : 11.8112
+Parallel  c7552  18 : 0.457984
 
-Serial    c7552  16 : 11.0084
-Parallel  c7552  16 : 0.463141
+Serial    c7552   1 : 0.656312
+Parallel  c7552   1 : 0.436162
 
-Serial    c7552   1 : 0.689258
-Parallel  c7552   1 : 0.433371
+Serial    c7552   2 : 1.31453
+Parallel  c7552   2 : 0.438727
 
-Serial    c7552 256 : 176.742
-Parallel  c7552 256 : 15.254
+Serial    c7552   4 : 2.67637
+Parallel  c7552   4 : 0.440742
 
-Serial    c7552   2 : 1.37618
-Parallel  c7552   2 : 0.445866
+Serial    c7552   8 : 5.3367
+Parallel  c7552   8 : 0.436412
 
-Serial    c7552  32 : 22.0504
-Parallel  c7552  32 : 1.47785
+Serial    c7552  16 : 10.7054
+Parallel  c7552  16 : 0.450721
 
-Serial    c7552   4 : 2.75562
-Parallel  c7552   4 : 0.435991
+Serial    c7552  32 : 21.4024
+Parallel  c7552  32 : 1.40313
 
-Serial    c7552  64 : 44.1472
-Parallel  c7552  64 : 3.63418
+Serial    c7552  64 : 42.7997
+Parallel  c7552  64 : 3.577
 
-Serial    c7552   8 : 5.49961
-Parallel  c7552   8 : 0.442754
+Serial    c7552 128 : 85.6111
+Parallel  c7552 128 : 7.37788
 
-Serial    c7552  18 : 12.3636
-Parallel  c7552  18 : 0.455618
+Serial    c7552   1 : 0.66871
+Parallel  c7552   1 : 0.456921
 

@@ -173,14 +173,14 @@ void cudaFaultSim(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCir
     cudaMalloc(&myCudaCircuitTraversalOrder, sizeof(int) * aNumCircuitSignals);
     cudaMalloc(&myCudaCircuitInputs, sizeof(int) * aNumCircuitInputs);
     cudaMalloc(&myCudaCircuitOutputs, sizeof(int) * aNumCircuitOutputs);
-    cudaMalloc(&myCudaTestVectors, sizeof(uint8_t) * aNumCircuitInputs * aNumCircuitSignals);
+    cudaMalloc(&myCudaTestVectors, sizeof(uint8_t) * aNumCircuitInputs * aNumTestVectors);
     cudaMalloc(&myCudaDetectedFaults, sizeof(uint8_t) * aNumCircuitSignals * 2 * aNumTestVectors);
 
     cudaMemcpy(myCudaCircuitStructure, aCircuitStructure, sizeof(CudaGate) * aNumCircuitSignals, cudaMemcpyHostToDevice);
     cudaMemcpy(myCudaCircuitTraversalOrder, aCircuitTraversalOrder, sizeof(int) * aNumCircuitSignals, cudaMemcpyHostToDevice);
     cudaMemcpy(myCudaCircuitInputs, aCircuitInputs, sizeof(int) * aNumCircuitInputs, cudaMemcpyHostToDevice);
     cudaMemcpy(myCudaCircuitOutputs, aCircuitOutputs, sizeof(int) * aNumCircuitOutputs, cudaMemcpyHostToDevice);
-    cudaMemcpy(myCudaTestVectors, aTestVectors, sizeof(uint8_t) * aNumCircuitInputs * aNumCircuitSignals, cudaMemcpyHostToDevice);
+    cudaMemcpy(myCudaTestVectors, aTestVectors, sizeof(uint8_t) * aNumCircuitInputs * aNumTestVectors, cudaMemcpyHostToDevice);
 
     GlobalConstants params;
     params.numCircuitSignals = aNumCircuitSignals;
