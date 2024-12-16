@@ -9,6 +9,8 @@ https://njayawar.github.io/dbarajas_njayawar_15618_course_project.github.io/
 https://docs.google.com/document/d/1DsREZ87A6Q04XDlbyS9fuON7GX2PO-IlJ7pOVObdvxE/edit?usp=sharing
 ### Milestone Report:
 https://docs.google.com/document/d/1BKwOo8JigOVu-aj74n8pdxkp7itGxT5C0Au6q06j9hc/edit?usp=sharing
+### Project Poster:
+https://docs.google.com/presentation/d/1W8S3OgRrTjpZUh_SvSq3U06lLK2Sl9PicqHEggwnzPU/edit?usp=sharing
 ### Final Report:
 https://docs.google.com/document/d/1oO70kfuJkcrv160yN8a7zy69ceG03JhVa5FjHjE7UmY/edit?usp=sharing
 
