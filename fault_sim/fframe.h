@@ -7,11 +7,14 @@
 
 #include "cframe.h"
 
+// Constant-sized circuit details
 #define MAX_FANIN_SIZE 15
 #define MAX_FANOUT_SIZE 15
 
+// Supported gate types
 enum class CudaGateType : uint8_t { AND, OR, NOT, XOR, NAND, NOR, BUFF, XNOR, INPUT};
 
+// CUDA-friendly gate struct
 struct CudaGate {
     CudaGateType gateType;
     int faninSize;

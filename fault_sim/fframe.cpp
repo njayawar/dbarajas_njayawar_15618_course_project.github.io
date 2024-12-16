@@ -1,12 +1,16 @@
 #include "cframe.h"
 #include "fframe.h"
 
+
+// Iterate through existing parsed circuit structure and populate CUDA-friendly data structures
 void createCircuitStructure(std::shared_ptr<CudaGate[]> aCircuitStructure, Circuit& aCircuit, std::set<std::string> aCircuitMapping) {
 
     for (auto& [myCircuitSignal, myCircuitGate] : aCircuit.theCircuit){
         #ifdef DEBUG
         std::cout << "Debug: Processing: " << myCircuitSignal << " | Fanin Size: " << myCircuitGate.inputs.size() << " | Fanout Size: " << myCircuitGate.outputs.size() << std::endl;
         #endif
+
+        // Memory allocation checks
         if (myCircuitGate.inputs.size() > MAX_FANIN_SIZE){
             std::cout << "MAX_FANIN_SIZE = " << MAX_FANIN_SIZE << std::endl;
             std::cout << "Fatal Error: Not enough space allocated to support fanin of size " << myCircuitGate.inputs.size() << std::endl;
@@ -18,6 +22,7 @@ void createCircuitStructure(std::shared_ptr<CudaGate[]> aCircuitStructure, Circu
             return;
         }
 
+        // Perform mapping of signals and gates (string to array index)
         int myMappedSignal = getSignalMapping(aCircuitMapping, myCircuitSignal);
 
         if (myCircuitGate.gateType == "BUFF" || myCircuitGate.gateType == "buff"){
@@ -42,9 +47,11 @@ void createCircuitStructure(std::shared_ptr<CudaGate[]> aCircuitStructure, Circu
             std::cout << "Error: Unable to match gate " << myCircuitGate.gateType << std::endl;
         }
 
+        // Fill in array size parameters
         aCircuitStructure[myMappedSignal].faninSize = myCircuitGate.inputs.size();
         aCircuitStructure[myMappedSignal].fanoutSize = myCircuitGate.outputs.size();
 
+        // Populate fanin signal details
         #ifdef DEBUG
         std::cout << "Debug: Fanin Signals: ";
         #endif
@@ -55,6 +62,7 @@ void createCircuitStructure(std::shared_ptr<CudaGate[]> aCircuitStructure, Circu
             #endif
         }
 
+        // Populate fanout signal details
         #ifdef DEBUG
         std::cout << "\nDebug: Fanout Signals: ";
         #endif
@@ -71,6 +79,8 @@ void createCircuitStructure(std::shared_ptr<CudaGate[]> aCircuitStructure, Circu
     }
 }
 
+
+// Helper method to populate CUDA-friendly circuit output data structure
 void createCircuitOutputs(std::shared_ptr<int[]> aCircuitOutputs, Circuit& aCircuit, std::set<std::string> aCircuitMapping){
     #ifdef DEBUG
     std::cout << "\nDebug: Populating circuit output array: ";
@@ -86,6 +96,8 @@ void createCircuitOutputs(std::shared_ptr<int[]> aCircuitOutputs, Circuit& aCirc
     #endif
 }
 
+
+// Creates set of all existing signals
 std::set<std::string> createSignalsSet(Circuit& aCircuit) {
     std::set<std::string> mySignals = std::set<std::string>();
     for (auto& [myCircuitName, myCircuitGate] : aCircuit.theCircuitState) {
@@ -94,6 +106,8 @@ std::set<std::string> createSignalsSet(Circuit& aCircuit) {
     return mySignals;
 }
 
+
+// Maps signal name to array index
 int getSignalMapping(std::set<std::string> aCircuitMapping, std::string aSignal){
     return std::distance(aCircuitMapping.begin(), aCircuitMapping.find(aSignal));
 }

@@ -17,6 +17,7 @@
 
 #include <unistd.h>
 
+// Various possible states for a signal
 typedef enum SignalType {
     ZERO = 0,
     ONE = 1,
@@ -25,6 +26,7 @@ typedef enum SignalType {
     X = 4
 } SignalType;
 
+// Map for printing signal state
 const std::unordered_map<SignalType, std::string> signalTypeNames = {
     {SignalType::ZERO, "ZERO"},
     {SignalType::ONE, "ONE"},
@@ -33,6 +35,7 @@ const std::unordered_map<SignalType, std::string> signalTypeNames = {
     {SignalType::X, "X"}
 };
 
+// Various possible debug return codes for an implication
 typedef enum ImplyReturnType {
     ERROR,
     MASKED,
@@ -41,6 +44,7 @@ typedef enum ImplyReturnType {
     DETECTED
 } ImplyReturnType;
 
+// Map for printing implication debug return codes
 const std::unordered_map<ImplyReturnType, std::string> returnCodeNames = {
     {ImplyReturnType::ERROR, "ERROR"},
     {ImplyReturnType::MASKED, "MASKED"},
@@ -49,6 +53,7 @@ const std::unordered_map<ImplyReturnType, std::string> returnCodeNames = {
     {ImplyReturnType::DETECTED, "DETECTED"}
 };
 
+// Supported gate types
 typedef enum GateType {
     AND,
     OR,
@@ -62,6 +67,7 @@ typedef enum GateType {
 
 std::string getSignalStateString(SignalType aSignal);
 
+// Circuit Gate class
 struct Gate {
     std::string gateType;
     std::vector<std::string> inputs;
@@ -75,6 +81,7 @@ void printGate(Gate aGate);
 bool string_is_whitespace(std::string& s);
 std::vector<std::string> tokenize_line(std::string s);
 
+// Gate output lookup tables (inspired by 18-765 cframe.py)
 const SignalType opAND [5][5] = {
     {SignalType::ZERO, SignalType::ZERO, SignalType::ZERO, SignalType::ZERO, SignalType::ZERO},
     {SignalType::ZERO, SignalType::ONE,  SignalType::D,    SignalType::D_b,  SignalType::X},
@@ -106,6 +113,7 @@ bool vectorContains(std::vector<T> aVector, T aValue){
     return (std::find(aVector.begin(), aVector.end(), aValue) != aVector.end());
 }
 
+// Circuit class with PODEM-oriented optimizations and structures
 class Circuit {
 public:
     Circuit();

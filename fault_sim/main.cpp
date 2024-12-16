@@ -9,6 +9,8 @@ void printCudaInfo();
 
 void serialFaultSim(int aNumCircuitSignals, CudaGate* aCircuitStructure, int* aCircuitTraversalOrder, int aNumCircuitInputs, int* aCircuitInputs, int aNumCircuitOutputs, int* aCircuitOutputs, int aNumTestVectors, uint8_t* aTestVectors, uint8_t* aDetectedFaults);
 
+
+// Input file parsing
 std::vector<std::string> tokenize_file_name(std::string s) {
     std::ranges::replace(s, '/', ' ');
     std::ranges::replace(s, '.', ' ');
@@ -31,6 +33,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    // Parse circuit structure
     std::unique_ptr<Circuit> myCircuit = std::make_unique<Circuit>(argv[1]);
 
     std::set<std::string> myCircuitMapping = createSignalsSet(*myCircuit);
@@ -43,6 +46,7 @@ int main(int argc, char** argv) {
     std::cout << std::endl;
     #endif
 
+    // Parse input circuit from ccframe and generate a CUDA-friendly version
     std::shared_ptr<CudaGate[]> myCircuitStructure(new CudaGate[myCircuitMapping.size()]);
     createCircuitStructure(myCircuitStructure, *myCircuit, myCircuitMapping);
 
@@ -50,6 +54,7 @@ int main(int argc, char** argv) {
     std::cout << "Finished structure" << std::endl;
     #endif
 
+    // Populate CUDA input data structures
     int myNumCircuitInputs = myCircuit->theCircuitInputs.size();
     std::shared_ptr<int[]> myCircuitInputs(new int[myNumCircuitInputs]);
 
@@ -57,6 +62,7 @@ int main(int argc, char** argv) {
     std::shared_ptr<int[]> myCircuitOutputs(new int[myNumCircuitOutputs]);
     createCircuitOutputs(myCircuitOutputs, *myCircuit, myCircuitMapping);
 
+    // Parse all input test vectors and populate CUDA-friendly data structures
     std::ifstream myTestVectorsFile;
     myTestVectorsFile.open(argv[2]);
 
@@ -144,6 +150,7 @@ int main(int argc, char** argv) {
     std::cout << "Debug: Number of test vectors: " << myNumTestVectors << std::endl;
     #endif
 
+    // Final generation of test vectors array
     std::shared_ptr<std::uint8_t[]> myTestVectors(new std::uint8_t[myNumTestVectors * myNumCircuitInputs]);
     for (std::size_t i = 0; i < myBinaryDigits.size(); i++){
         for (std::size_t j = 0; j < myBinaryDigits[i].size(); j++){
@@ -161,6 +168,7 @@ int main(int argc, char** argv) {
     }
     #endif
 
+    // Determine traversal order of circuit (used by both CUDA and serial CPU implementation)
     std::vector<int> myTraversalOrderVector = std::vector<int>();
     for (int i = 0; i < myNumCircuitInputs; i++){
         myTraversalOrderVector.push_back(myCircuitInputs[i]);
@@ -187,6 +195,7 @@ int main(int argc, char** argv) {
     printCudaInfo();
     #endif
 
+    // Initialize output data structures and start CUDA fault simulation
     std::shared_ptr<std::uint8_t[]> myDetectedFaults(new std::uint8_t[myCircuitMapping.size() * 2 * myNumTestVectors]);
     #ifdef DEBUG
     std::cout << "\nStarting Parallel Fault Simulation Timer" << std::endl;
@@ -198,6 +207,7 @@ int main(int argc, char** argv) {
     std::cout << "Ending Parallel Fault Simulation Timer" << std::endl;
     #endif
 
+    // Print Results
     #ifdef DEBUG
     std::cout << "\n--------------------- Parallel Fault Simulation Results ---------------------" << std::endl;
     for (int myVectorIdx = 0; myVectorIdx < myNumTestVectors; myVectorIdx++) {
@@ -215,6 +225,7 @@ int main(int argc, char** argv) {
     }
     #endif
 
+    // Run CPU serial fault simluation
     #ifdef DEBUG
     std::cout << "\nStarting Serial Fault Simulation Timer" << std::endl;
     #endif
@@ -225,6 +236,7 @@ int main(int argc, char** argv) {
     std::cout << "Ending Serial Fault Simulation Timer" << std::endl;
     #endif
 
+    // Print Results
     #ifdef DEBUG
     std::cout << "\n--------------------- Serial Fault Simulation Results ---------------------" << std::endl;
     for (int myVectorIdx = 0; myVectorIdx < myNumTestVectors; myVectorIdx++) {
@@ -242,6 +254,7 @@ int main(int argc, char** argv) {
     }
     #endif
 
+    // Output statistics to result file
     std::vector<std::string> myTokenizedCircuitFileName = tokenize_file_name(argv[1]);
 
     std::string myBenchName = myTokenizedCircuitFileName[myTokenizedCircuitFileName.size()-2];

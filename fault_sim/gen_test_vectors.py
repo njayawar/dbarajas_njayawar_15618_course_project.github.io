@@ -1,3 +1,5 @@
+# Helper file to generate a series of randomized test vectors for all given ISCAS-85 benches
+
 import pathlib
 import random
 

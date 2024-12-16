@@ -111,6 +111,7 @@ std::string getReturnCodeString(ImplyReturnType aReturnType){
 }
 
 
+// Parses circuit from input file and populates data structures
 void Circuit::populate_circuit(std::ifstream& aCircuitFile, std::unordered_map<std::string, std::vector<std::string>> aWireCnt) {
     std::string myLine;
     while (std::getline(aCircuitFile, myLine)) {
@@ -126,6 +127,8 @@ void Circuit::populate_circuit(std::ifstream& aCircuitFile, std::unordered_map<s
             std::vector<std::string> myTokens = tokenize_line(myLine);
             std::string myGateOutputWire;
             std::string myGateType;
+
+            // Process circuit input
             if (myLine.starts_with("INPUT") || myLine.starts_with("input")) {
                 myGateType = "INPUT";
                 myGateOutputWire = myTokens[1];
@@ -138,6 +141,7 @@ void Circuit::populate_circuit(std::ifstream& aCircuitFile, std::unordered_map<s
 
             Gate myGate = {myGateType, std::vector<std::string>(), std::vector<std::string>()};
 
+            // Process regular gate
             if (!myLine.starts_with("INPUT") && !myLine.starts_with("input")) {
                 for (auto& myInputWire : myInputWireNames) {
                     if (aWireCnt[myInputWire].size() > 1) {
@@ -155,6 +159,7 @@ void Circuit::populate_circuit(std::ifstream& aCircuitFile, std::unordered_map<s
                 }
             }
 
+            // Add additional gates if output is a stem to a branch
             if (aWireCnt[myGateOutputWire].size() > 1) {
                 for (auto& myOutputBranch : aWireCnt[myGateOutputWire]) {
                     std::size_t myBranchIter = 0;
@@ -182,8 +187,11 @@ void Circuit::populate_circuit(std::ifstream& aCircuitFile, std::unordered_map<s
     }
 }
 
+
 Circuit::Circuit() {};
 
+
+// Upon construction, begin parsing and populate data structures
 Circuit::Circuit(const std::string aCircuitFileString) :
         theFaultLocation(""),
         theFaultValue(SignalType::X),
@@ -205,39 +213,33 @@ Circuit::Circuit(const std::string aCircuitFileString) :
         return;
     }
 
+    // First pass - determine any stem and branches for future reference
     auto myWireCnt = get_wire_cnt(theCircuitFile);
-
-    // for (auto& [myWireName, wires] : myWireCnt) {
-    //     int cnt = wires.size();
-    //     std::cout << myWireName << ": " << cnt << std::endl;
-    //     std::cout << "wires: ";
-    //     for (auto& myOutputWire : wires) {
-    //         std::cout << myOutputWire << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
 
     theCircuitFile.clear();
     theCircuitFile.seekg(0);
 
+    // Second pass - populate data structures
     populate_circuit(theCircuitFile, myWireCnt);
 
-    // std::cout << "\n\n----- Printing Populated Circuit -----" << std::endl;
+    #ifdef DEBUG
+    std::cout << "\n\n----- Printing Populated Circuit -----" << std::endl;
 
-    // for (auto& [myWireName, myGate] : *theCircuit){
-    //     std::cout << "\n--- Gate: " << myWireName << " | Type: " << myGate->gateType << " ---" << std::endl;
-    //     std::cout << "Inputs: ";
-    //     for (auto& myGateInput : myGate->inputs) {
-    //         std::cout << myGateInput << " ";
-    //     }
-    //     std::cout << std::endl << "Outputs: ";
-    //     for (auto& myGateOutput : myGate->outputs) {
-    //         std::cout << myGateOutput + " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
+    for (auto& [myWireName, myGate] : theCircuit){
+        std::cout << "\n--- Gate: " << myWireName << " | Type: " << myGate.gateType << " ---" << std::endl;
+        std::cout << "Inputs: ";
+        for (auto& myGateInput : myGate.inputs) {
+            std::cout << myGateInput << " ";
+        }
+        std::cout << std::endl << "Outputs: ";
+        for (auto& myGateOutput : myGate.outputs) {
+            std::cout << myGateOutput + " ";
+        }
+        std::cout << std::endl;
+    }
 
-    // printCircuitState();
+    printCircuitState();
+    #endif
 
 }
 
@@ -254,6 +256,7 @@ Circuit& Circuit::operator=(const Circuit& other) {
     return *this;
 }
 
+
 Circuit::Circuit(const Circuit& other) :
     theCircuit(other.theCircuit),
     theCircuitState(other.theCircuitState),
@@ -265,6 +268,7 @@ Circuit::Circuit(const Circuit& other) :
     theDFrontier(other.theDFrontier),
     theCircuitFileString(other.theCircuitFileString)
 {}
+
 
 void printGate(Gate aGate) {
     std::cout << aGate.gateType << std::endl;
@@ -278,17 +282,9 @@ void printGate(Gate aGate) {
     std::cout << std::endl;
 }
 
+
 void Circuit::printCircuit() {}
-// void Circuit::printCircuit(){
-//     for (auto& [aGateName, aGate] : theCircuit) {
-//         std::cout << aGateName << std::endl;
-//         printGate(aGate);
-//     }
-//     printCircuitState();
-//     for (auto& anInput : theCircuitInputs) {
-//         std::cout << anInput << std::endl;
-//     }
-// }
+
 
 void Circuit::printCircuitState(){
     std::cout << "\n\n----- Printing Circuit State -----" << std::endl;
@@ -314,6 +310,7 @@ Circuit::~Circuit() {
     }
 }
 
+
 bool Circuit::setCircuitFault(std::string aFaultLocation, SignalType aFaultValue){
 
     if (aFaultValue != SignalType::D && aFaultValue != SignalType::D_b) {
@@ -335,6 +332,7 @@ bool Circuit::setCircuitFault(std::string aFaultLocation, SignalType aFaultValue
 }
 
 
+// Sets a circuit input and propogates the effect of the assignment all the way down the circuit
 ImplyReturnType Circuit::setAndImplyCircuitInput(std::string anInput, SignalType aValue){
     if (aValue != SignalType::ONE && aValue != SignalType::ZERO && aValue != SignalType::X) {
         std::cout << "Error: setAndImply(" << anInput << ", " << getSignalStateString(aValue) << ") | Input value must of type 1 or 0" << std::endl;
@@ -351,6 +349,7 @@ ImplyReturnType Circuit::setAndImplyCircuitInput(std::string anInput, SignalType
 
     bool mySignalIsOutputFlag = vectorContains<std::string>(theCircuitOutputs, anInput);
 
+    // If a fault location is seen, override the correct assignment
     if ((anInput == theFaultLocation) && (aValue != SignalType::X)){
         if (theFaultValue == SignalType::D){
             if (aValue == SignalType::ZERO){
@@ -374,6 +373,7 @@ ImplyReturnType Circuit::setAndImplyCircuitInput(std::string anInput, SignalType
         theCircuitState[anInput] = aValue;
     }
 
+    // Recursively perform signal assignment down the circuit
     for (auto& fanoutSignal : theCircuit[anInput].outputs) {
         // std::cout << "Debug: Checking gate " << fanoutSignal << " for update" << std::endl;
         ImplyReturnType myNewReturnCode = evaluateGateRecursive(fanoutSignal);
@@ -404,6 +404,7 @@ ImplyReturnType Circuit::setAndImplyCircuitInput(std::string anInput, SignalType
 }
 
 
+// Recursive call to evaluate the output of a gate and propogate assignemnt through the circuit
 ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
 
     ImplyReturnType myReturnCode = ImplyReturnType::NORMAL;
@@ -462,10 +463,9 @@ ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
         theDFrontier.erase(aGateName);
     }
 
-    // printDFrontierGates();
-
     bool mySignalIsOutputFlag = vectorContains<std::string>(theCircuitOutputs, aGateName);
 
+    // Override assignment if a fault location is seen
     if ((aGateName == theFaultLocation) && (myNewSignalValue != SignalType::X)){
         if (theFaultValue == SignalType::D){
             if (myNewSignalValue == SignalType::ZERO){
@@ -493,6 +493,7 @@ ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
         myReturnCode = ImplyReturnType::DETECTED;
     }
 
+    // Return code priority determination
     if (myNewSignalValue != myOldSignalValue){
         for (auto& fanoutSignal : aGate.outputs) {
             // std::cout << "Debug: Checking gate " << fanoutSignal << " for update" << std::endl;
@@ -524,12 +525,15 @@ ImplyReturnType Circuit::evaluateGateRecursive(std::string aGateName){
 }
 
 
+// Initialize circuit to all Xs
 void Circuit::resetCircuit(){
     for(auto& aCircuitInput: theCircuitInputs){
         setAndImplyCircuitInput(aCircuitInput, SignalType::X);
     }
 }
 
+
+// Return map of all current circuit inputs to values
 std::unordered_map<std::string, SignalType> Circuit::getCurrCircuitInputValues(){
     std::unordered_map<std::string, SignalType> myCurrCircuitInputValues = std::unordered_map<std::string, SignalType>();
     for (auto& myInput : theCircuitInputs) {
