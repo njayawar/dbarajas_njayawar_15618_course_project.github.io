@@ -30,9 +30,8 @@ int theTaskCnt = 0;
 int theMaxTaskCnt = 0;
 double theTotalComputationTime = 0;
 
-std::chrono::_V2::steady_clock::time_point mySingleSSLATPGStartTime = std::chrono::steady_clock::now();
 
-
+// Print usage information
 void usage(const char* progname) {
     printf("Usage: %s [options]\n", progname);
     printf("Program Options:\n");
@@ -45,6 +44,7 @@ void usage(const char* progname) {
 }
 
 
+// Line parser for string splitting
 static std::vector<std::string> tokenize_line(std::string s) {
     std::ranges::replace(s, '/', ' ');
     std::ranges::replace(s, '.', ' ');
@@ -61,7 +61,9 @@ static std::vector<std::string> tokenize_line(std::string s) {
 }
 
 
+// Initiates the recursive PODEM algorithm based on parallization strategy
 std::unique_ptr<std::unordered_map<std::string, SignalType>> startPODEM(Circuit& aCircuit, std::pair<std::string, SignalType> anSSLFault){
+    // Set fault and initialize counters
     aCircuit.setCircuitFault(anSSLFault.first, anSSLFault.second);
     aCircuit.resetCircuit();
     theSolutionFound = false;
@@ -82,6 +84,7 @@ std::unique_ptr<std::unordered_map<std::string, SignalType>> startPODEM(Circuit&
         }
     }
 
+    // Return ATPG success or failure
     if (!myTestVector.empty()) {
         return std::make_unique<std::unordered_map<std::string, SignalType>>(myTestVector);
     } else {
@@ -90,6 +93,7 @@ std::unique_ptr<std::unordered_map<std::string, SignalType>> startPODEM(Circuit&
 }
 
 
+// Begin ATPG on given circuit and return comprehensive results
 std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>> runATPG(Circuit& aCircuit) {
 
     double myTotalComputationTime = 0.0;
@@ -100,20 +104,19 @@ std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordere
 
     std::vector<std::pair<std::string, SignalType>> mySSLFaults = std::vector<std::pair<std::string, SignalType>>();
 
+    // Add all possible signal faults
     std::vector<std::string> myTest = std::vector<std::string>();
     for (auto& mySignalPair : aCircuit.theCircuit){
-        if (!((0))){
-            mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D));
-        }
-        if (!((0))){
-            mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D_b));
-        }
+        mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D));
+        mySSLFaults.push_back(std::pair<std::string, SignalType>(mySignalPair.first, SignalType::D_b));
     }
+    // Single test fault
     // mySSLFaults.push_back(std::pair<std::string, SignalType>("213_BRANCH0_259", SignalType::D));
 
     std::size_t myNumFaults = mySSLFaults.size();
     (void) myNumFaults;
 
+    // Report results
     while (!mySSLFaults.empty()){
         std::pair<std::string, SignalType> myTargetSSLFault = mySSLFaults.back();
 
@@ -122,7 +125,7 @@ std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordere
         std::cout << "Info: Running PODEM to detect fault: " << myTargetSSLFault.first << " | SA: " << (myTargetSSLFault.second == SignalType::D ? '0' : '1') << std::endl;
         #endif
 
-        mySingleSSLATPGStartTime = std::chrono::steady_clock::now();
+        const auto mySingleSSLATPGStartTime = std::chrono::steady_clock::now();
         std::unique_ptr<std::unordered_map<std::string, SignalType>> myTestVector = startPODEM(aCircuit, myTargetSSLFault);
         const auto mySingleSSLATPGTime = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - mySingleSSLATPGStartTime).count();
         myTotalComputationTime += mySingleSSLATPGTime;
@@ -220,10 +223,11 @@ int main(int argc, char** argv) {
 
     omp_set_num_threads(MAX_THREADS);
 
+    // Parse circuit
     std::unique_ptr<Circuit> myCircuit = std::make_unique<Circuit>(myCircuitFile);
 
+    // Run ATPG
     std::vector<std::tuple<std::pair<std::string, SignalType>, double, std::unordered_map<std::string, SignalType>>> myATPGData;
-
     myATPGData = runATPG(*myCircuit);
 
     // Print details
@@ -249,6 +253,7 @@ int main(int argc, char** argv) {
     std::cout << "Max live tasks " << theMaxTaskCnt << std::endl;
     #endif
 
+    // Write statistics to results file
     std::vector<std::string> myTokenizedCircuitFileName = tokenize_line(myCircuitFile);
 
     std::string myBenchName = myTokenizedCircuitFileName[myTokenizedCircuitFileName.size()-2];

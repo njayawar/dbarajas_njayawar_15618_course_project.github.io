@@ -103,7 +103,7 @@ std::pair<std::string, SignalType> doBacktrace(Circuit& aCircuit, std::pair<std:
 std::unordered_map<std::string, SignalType> runPODEMRecursiveParallelDecisions(Circuit& aCircuit){
 
     // aCircuit.printCircuitState();
-    if (theSolutionFound || (std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - mySingleSSLATPGStartTime).count()) > 240) {
+    if (theSolutionFound) {
         return std::unordered_map<std::string, SignalType>();
     }
 
