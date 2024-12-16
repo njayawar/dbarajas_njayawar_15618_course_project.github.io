@@ -24,7 +24,9 @@ The PODEM algorithm considers a particular SSL fault and backtraces the signals 
 
 <p align="center">
 Decision Tree for a Simplified Circuit
-  ![Screenshot 2024-12-15 234315](https://github.com/user-attachments/assets/ab63ffb6-c3b5-4d9b-bd04-fd70380d5edf)
+
+  ![Screenshot 2024-12-15 234315](https://github.com/user-attachments/assets/11141bff-5650-427d-9017-ca51f89a9e67)
+
 </p>
 
 Another aspect of digital systems testing we may explore is the process of fault simulation. Fault simulation consists of taking the test vectors derived from ATPG and running it back into the circuit. Fault simulation helps determine how many faults are covered by a particular set of test vectors and reduces the test set size if a single test vector can detect multiple SSL faults.
@@ -61,6 +63,43 @@ Lastly, the platform that we would choose for our hope to achieve goals of fault
 
 ### High-Level Results:
 
+We see promising results for medium and large circuits for both ATPG and fault simulation. For more in-depth results and analysis, our Results section in the final report does a deep dive in our findings.
+
+<p align="center">
+Medium-sized circuit (c432) 
+
+  ![image](https://github.com/user-attachments/assets/21cf2561-2977-46f5-934c-ef717a73f4fa)
+
+</p>
+
+<p align="center">
+Serial ATPG Results
+
+  ![image](https://github.com/user-attachments/assets/2346d939-8f39-4999-a8c7-38c6928ae8eb)
+
+
+</p>
+
+<p align="center">
+Parallel ATPG Results
+
+  ![image](https://github.com/user-attachments/assets/799b1e98-d3e1-4270-aaf0-ba776d4a9955)
+
+</p>
+
+<p align="center">
+Parallel ATPG Tuning
+
+  ![image](https://github.com/user-attachments/assets/1351d0e7-e9ad-41a8-866c-151d76864e81)
+
+</p>
+
+<p align="center">
+Parallel Fault Simulation Results
+
+  ![image](https://github.com/user-attachments/assets/5b32295e-776d-44d0-b9ef-81a20c6b6513)
+
+</p>
 
 ### Schedule:
 | Week | ToDo |
