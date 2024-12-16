@@ -23,9 +23,9 @@ An ATPG algorithm needs to derive test vectors to detect every possible SSL faul
 The PODEM algorithm considers a particular SSL fault and backtraces the signals to the primary circuit inputs to determine input values that will activate the fault - for example if we are considering a stuck-at-1 fault for a signal, the objective would be to find a set of inputs that drive that signal to a 0 otherwise the fault will not be detected with that test vector. Signals in a circuit fan in and out due to gates with multiple inputs and the branching of signals which complicates ATPG as multiple signals may need to be determined to activate a fault. Once activated, PODEM focuses on propagating the fault to a primary output. If a faulty signal is going into an AND gate where the other input is a 0, the fault will not be detected because the output of that gate is controlled by the 0, not the faulty signal. Decisions made along the circuit will determine whether or not a particular test vector can activate and propagate the fault. These decisions can be tracked via a decision tree that is traversed when determining what inputs can detect a particular SSL fault.
 
 <p align="center">
-Decision Tree for a Simplified Circuit
+Decision Tree for a Simplified Circuit<br>
 
-  ![Screenshot 2024-12-15 234315](https://github.com/user-attachments/assets/11141bff-5650-427d-9017-ca51f89a9e67)
+  <img src="https://github.com/user-attachments/assets/11141bff-5650-427d-9017-ca51f89a9e67" width="800">
 
 </p>
 
@@ -66,38 +66,37 @@ Lastly, the platform that we would choose for our hope to achieve goals of fault
 We see promising results for medium and large circuits for both ATPG and fault simulation. For more in-depth results and analysis, our Results section in the final report does a deep dive in our findings.
 
 <p align="center">
-Medium-sized circuit (c432) 
+Medium-sized circuit (c432) <br>
 
-  ![image](https://github.com/user-attachments/assets/21cf2561-2977-46f5-934c-ef717a73f4fa)
-
-</p>
-
-<p align="center">
-Serial ATPG Results
-
-  ![image](https://github.com/user-attachments/assets/2346d939-8f39-4999-a8c7-38c6928ae8eb)
-
+  <img src="https://github.com/user-attachments/assets/21cf2561-2977-46f5-934c-ef717a73f4fa" width="800">
 
 </p>
 
 <p align="center">
-Parallel ATPG Results
+Serial ATPG Results<br>
 
-  ![image](https://github.com/user-attachments/assets/799b1e98-d3e1-4270-aaf0-ba776d4a9955)
-
-</p>
-
-<p align="center">
-Parallel ATPG Tuning
-
-  ![image](https://github.com/user-attachments/assets/1351d0e7-e9ad-41a8-866c-151d76864e81)
+  <img src="https://github.com/user-attachments/assets/2346d939-8f39-4999-a8c7-38c6928ae8eb" width="800">
 
 </p>
 
 <p align="center">
-Parallel Fault Simulation Results
+Parallel ATPG Results<br>
 
-  ![image](https://github.com/user-attachments/assets/5b32295e-776d-44d0-b9ef-81a20c6b6513)
+  <img src="https://github.com/user-attachments/assets/799b1e98-d3e1-4270-aaf0-ba776d4a9955" width="800">
+  
+</p>
+
+<p align="center">
+Parallel ATPG Tuning<br>
+
+  <img src="https://github.com/user-attachments/assets/1351d0e7-e9ad-41a8-866c-151d76864e81" width="800">
+
+</p>
+
+<p align="center">
+Parallel Fault Simulation Results<br>
+
+  <img src="https://github.com/user-attachments/assets/5b32295e-776d-44d0-b9ef-81a20c6b6513" width="800">
 
 </p>
 
